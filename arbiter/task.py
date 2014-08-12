@@ -24,7 +24,7 @@ from time import sleep
 Task = namedtuple('Task', ['name', 'function', 'dependencies'])
 
 
-def create(name, function, dependencies=None):
+def create(name, function, dependencies=None, retries=0, delay=timedelta()):
     """
     Create a new task to be run by arbiter.
 
@@ -35,11 +35,17 @@ def create(name, function, dependencies=None):
         and False (or rasies an exception) on failure.
     dependencies: (optional, None) An iterable of names of tasks that
         must be successfully completed in order for this task to be run.
+    retries: (optional, 0) The number of times to retry on failure.
+    delay: (optional, 0 seconds) The amount of time to delay between
+        retries.
     """
     if dependencies is None:
         dependencies = frozenset()
     else:
         dependencies = frozenset(dependencies)
+
+    if retries > 0:
+        function = retry(retries, delay)(function)
 
     return Task(name, function, dependencies)
 

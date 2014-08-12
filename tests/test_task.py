@@ -30,6 +30,11 @@ def test_create():
     assert_equal(actual, Task('foo', function, frozenset(('bar', 'baz'))))
     assert_equal(type(actual.dependencies), frozenset)
 
+    # test retrying
+    response = [False, False, True]
+    task = create('foo', lambda: response.pop(), retries=2, delay=timedelta())
+    assert_true(task.function())
+
 
 def test_retry():
     """
