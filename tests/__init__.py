@@ -10,6 +10,5 @@ def test_paths():
     """
     import arbiter
 
-
     from arbiter.task import create_task
     assert_equal(arbiter.create_task, create_task)
