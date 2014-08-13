@@ -21,10 +21,13 @@ from time import sleep
 # successful and False (or raises an exception) on failure. dependencies
 # should be a frozenset (a set would also work, but there is no need for
 # mutability).
-Task = namedtuple('Task', ['name', 'function', 'dependencies'])
+Task = namedtuple(
+    'Task',
+    ['name', 'function', 'dependencies', 'args', 'kwargs']
+)
 
 
-def create_task(name, function, dependencies=None,
+def create_task(name, function, dependencies=None, args=(), kwargs=None,
                 retries=0, delay=timedelta()):
     """
     Create a new task to be run by arbiter.
@@ -45,10 +48,13 @@ def create_task(name, function, dependencies=None,
     else:
         dependencies = frozenset(dependencies)
 
+    if kwargs is None:
+        kwargs = {}
+
     if retries > 0:
         function = retry(retries, delay)(function)
 
-    return Task(name, function, dependencies)
+    return Task(name, function, dependencies, args, kwargs)
 
 
 def retry(retries, delay=timedelta()):

@@ -17,18 +17,30 @@ def test_create_task():
     # No dependencies
     assert_equal(
         create_task('foo', function),
-        Task('foo', function, frozenset())
+        Task('foo', function, frozenset(), (), {})
     )
 
     # Dependencies
     actual = create_task('foo', function, {'bar', 'baz'})
-    assert_equal(actual, Task('foo', function, frozenset(('bar', 'baz'))))
+    assert_equal(
+        actual,
+        Task('foo', function, frozenset(('bar', 'baz')), (), {})
+    )
     assert_equal(type(actual.dependencies), frozenset)
 
     # passing an iterable
     actual = create_task('foo', function, (name for name in ('bar', 'baz')))
-    assert_equal(actual, Task('foo', function, frozenset(('bar', 'baz'))))
+    assert_equal(
+        actual,
+        Task('foo', function, frozenset(('bar', 'baz')), (), {})
+    )
     assert_equal(type(actual.dependencies), frozenset)
+
+    # passing args and kwargs
+    assert_equal(
+        create_task('foo', function, args=('foo',), kwargs={'bar': 'baz'}),
+        Task('foo', function, frozenset(), ('foo',), {'bar': 'baz'})
+    )
 
     # test retrying
     response = [False, False, True]
