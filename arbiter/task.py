@@ -24,7 +24,7 @@ from time import sleep
 Task = namedtuple('Task', ['name', 'function', 'dependencies'])
 
 
-def create(name, function, dependencies=None, retries=0, delay=timedelta()):
+def create_task(name, function, dependencies=None, retries=0, delay=timedelta()):
     """
     Create a new task to be run by arbiter.
 

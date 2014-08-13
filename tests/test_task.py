@@ -6,33 +6,38 @@ from datetime import timedelta
 from nose.tools import assert_equal, assert_true, assert_false, assert_raises
 
 
-def test_create():
+def test_create_task():
     """
-    Test the create function.
+    Test the create_task function.
     """
-    from arbiter.task import create, Task
+    from arbiter.task import create_task, Task
 
     function = lambda x: True
 
     # No dependencies
     assert_equal(
-        create('foo', function),
+        create_task('foo', function),
         Task('foo', function, frozenset())
     )
 
     # Dependencies
-    actual = create('foo', function, {'bar', 'baz'})
+    actual = create_task('foo', function, {'bar', 'baz'})
     assert_equal(actual, Task('foo', function, frozenset(('bar', 'baz'))))
     assert_equal(type(actual.dependencies), frozenset)
 
     # passing an iterable
-    actual = create('foo', function, (name for name in ('bar', 'baz')))
+    actual = create_task('foo', function, (name for name in ('bar', 'baz')))
     assert_equal(actual, Task('foo', function, frozenset(('bar', 'baz'))))
     assert_equal(type(actual.dependencies), frozenset)
 
     # test retrying
     response = [False, False, True]
-    task = create('foo', lambda: response.pop(), retries=2, delay=timedelta())
+    task = create_task(
+        'foo',
+        response.pop,
+        retries=2,
+        delay=timedelta()
+    )
     assert_true(task.function())
 
 
