@@ -3,7 +3,6 @@ The actual task runner.
 """
 from concurrent.futures import (as_completed, ProcessPoolExecutor,
                                 ThreadPoolExecutor)
-from functools import wraps
 
 
 def run_tasks(tasks, max_workers=1, processes=False):
@@ -36,12 +35,11 @@ def run_tasks(tasks, max_workers=1, processes=False):
                 # all dependencies matched. We can run the task
                 if task.dependencies <= set(futures.keys()):
                     futures[task.name] = executor.submit(
-                        when_ready(
-                            task.function,
-                            (futures[name] for name in task.dependencies)
-                        ),
-                        *task.args,
-                        **task.kwargs
+                        task_runner,
+                        [futures[name] for name in task.dependencies],
+                        task.function,
+                        task.args,
+                        task.kwargs,
                     )
                     updated = True
                 else:
@@ -61,28 +59,25 @@ def run_tasks(tasks, max_workers=1, processes=False):
     return completed, failures
 
 
-def when_ready(function, dependent_futures):
+def task_runner(dependent_futures, function, args=(), kwargs=None):
     """
-    A wrapper for task to handle dependencies.
+    The function that runs a task if its dependencies are met
 
-    function: The zero-argument function that represents a task.
-    dependent_futures: An iterable of futures that must be completed
-        prior to the task running.
+    dependent_futures: A list of futures that are prerequisites.
+    function: The actual task to run.
+    args: The function arguments.
+    kwargs: The function keyword arguments.
     """
-    @wraps(function)
-    def wrapper(*args, **kwargs):
-        """
-        The actual wrapper.
-        """
-        # wait on dependencies to finish.
-        for dependent_future in as_completed(dependent_futures):
+    if kwargs is None:
+        kwargs = {}
+
+    # wait on dependencies to finish
+    for dependent_future in as_completed(dependent_futures):
             # if any dependency fails, the task fails. No need to wait
             if not dependent_future.result():
                 return False
 
-        try:
-            return function(*args, **kwargs)
-        except Exception:
-            return False
-
-    return wrapper
+    try:
+        return function(*args, **kwargs)
+    except Exception:
+        return False
