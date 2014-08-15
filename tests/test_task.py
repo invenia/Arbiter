@@ -82,28 +82,24 @@ def test_retry():
         retrier(1.1, [True])
 
     # no need to retry
-    assert_true(retrier(1, [True, False]))
+    assert_equal(retrier(1, ['foo', Exception()]), 'foo')
 
     # no retries allowed
-    assert_false(retrier(0, [False, True]))
+    with assert_raises(ImportError):
+        retrier(0, [ImportError(), True])
 
     # not enough retries
-    assert_false(retrier(2, [False, False, False, True]))
+    with assert_raises(AttributeError):
+        retrier(2, [ImportError(), KeyError(), AttributeError(), True])
 
     # success on retires
-    assert_true(retrier(2, [False, False, True]))
+    assert_true(retrier(2, [ImportError(), AttributeError(), True]))
 
     # don't raise if retries remaining
     assert_false(retrier(2, [Exception(), TypeError(), False]))
-    assert_true(retrier(2, [Exception(), False, True]))
 
-    # raise if no retries remain
-    with assert_raises(ImportError):
-        retrier(2, [TypeError(), AttributeError(), ImportError()])
-
-    # make sure Falsy/Truthy, not False/True only
-    assert_equal(retrier(3, [[], timedelta(), None, [1, 2, 3]]), [1, 2, 3])
-    assert_equal(retrier(2, [[], 1]), 1)
+    # don't treat falsy as failure
+    assert_equal(retrier(1, [Exception(), False, True]), False)
 
     # Don't let retry catch kill exceptions
     with assert_raises(KeyboardInterrupt):
@@ -148,7 +144,10 @@ def test_retry_delay():
             """
             response = responses.pop(0)
 
-            call_stack.append(('call', response))
+            if isinstance(response, Exception):
+                call_stack.append(('raise',))
+            else:
+                call_stack.append(('call', response))
 
             if isinstance(response, Exception):
                 raise response
@@ -166,17 +165,22 @@ def test_retry_delay():
     assert_equal(call_stack, [('call', True)])
 
     call_stack = []
-    assert_true(retrier(1, [False, True]))
-    assert_equal(call_stack, [('call', False), ('sleep', 0), ('call', True)])
+    assert_true(retrier(1, [Exception(), True]))
+    assert_equal(
+        call_stack,
+        [('raise',), ('sleep', 0), ('call', True)]
+    )
 
     call_stack = []
-    assert_false(retrier(1, [False, False]))
-    assert_equal(call_stack, [('call', False), ('sleep', 0), ('call', False)])
+    with assert_raises(ImportError):
+        retrier(1, [Exception(), ImportError()])
+    assert_equal(call_stack, [('raise',), ('sleep', 0), ('raise',)])
 
     # delays
     call_stack = []
-    assert_false(retrier(1, [False, False], delay=timedelta(seconds=55)))
-    assert_equal(call_stack, [('call', False), ('sleep', 55), ('call', False)])
+    with assert_raises(ImportError):
+        retrier(1, [Exception(), ImportError()], delay=timedelta(seconds=55))
+    assert_equal(call_stack, [('raise',), ('sleep', 55), ('raise',)])
 
     # invalid delays
     with assert_raises(AttributeError):
@@ -200,5 +204,6 @@ def test_retry_delay():
             return self.delay
 
     call_stack = []
-    assert_false(retrier(1, [False, False], delay=Delay(10)))
-    assert_equal(call_stack, [('call', False), ('sleep', 10), ('call', False)])
+    with assert_raises(ImportError):
+        retrier(1, [KeyError(), ImportError()], delay=Delay(10))
+    assert_equal(call_stack, [('raise',), ('sleep', 10), ('raise',)])

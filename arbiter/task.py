@@ -17,10 +17,9 @@ from time import sleep
 # known in advance.
 
 # If you plan on creating a Task directly, instead of using create,
-# function should be a zero-argument function that returns True if
-# successful and False (or raises an exception) on failure. dependencies
-# should be a frozenset (a set would also work, but there is no need for
-# mutability).
+# function should be a function that raises an exception (that derives
+# from Exception) on failure. dependencies should be a frozenset. args
+# should be a tuple. kwargs should be a dict.
 Task = namedtuple(
     'Task',
     ['name', 'function', 'dependencies', 'args', 'kwargs']
@@ -35,10 +34,11 @@ def create_task(name, function, dependencies=None, args=(), kwargs=None,
     name: The name of the task being created. As the name is used for
         dependency-tracking, it must be unique among all tasks you are
         running at a given time.
-    function: A zero-argument function that returns True if successful
-        and False (or rasies an exception) on failure.
+    function: A function that raises an exception on failure.
     dependencies: (optional, None) An iterable of names of tasks that
         must be successfully completed in order for this task to be run.
+    args: (optional, ()) A tuple of arguments to pass to function.
+    kwargs: (optional, None) A dict of arguments to pass to function.
     retries: (optional, 0) The number of times to retry on failure.
     delay: (optional, 0 seconds) The amount of time to delay between
         retries.
@@ -60,7 +60,7 @@ def create_task(name, function, dependencies=None, args=(), kwargs=None,
 def retry(retries, delay=timedelta()):
     """
     A decorator for making a function that retries on failure (failure
-    is defined as returning a Falsy value, or raising an exception).
+    is defined as raising an exception).
 
     The function's returned value will be passed through (and if on the
     final retry, an exception will be passed through).
@@ -90,10 +90,7 @@ def retry(retries, delay=timedelta()):
 
             while attempts < retries:
                 try:
-                    result = function(*args, **kwargs)
-
-                    if result:
-                        return result
+                    return function(*args, **kwargs)
                 except Exception:
                     pass
 

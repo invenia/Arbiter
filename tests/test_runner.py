@@ -8,251 +8,298 @@ from threading import current_thread
 from nose.tools import (assert_true, assert_false, assert_equal,
                         assert_not_equal, assert_raises)
 
-RESULTS = {}
-def procable_call(name, succeed=True):
+
+def function_call(fail=False):
     """
-    Add a name to the call stack.
+    A multiprocessing function.
     """
-    RESULTS[name] = (getpid(), current_thread().name)
+    if fail:
+        raise Exception()
 
-    return succeed
-
-
-def test_task_runner():
-    """
-    Test the task_runner function
-    """
-    from arbiter.runner import task_runner
-
-    def function(should_raise=False, exception=Exception, **kwargs):
-        """
-        A function for testing when_ready
-        """
-        if should_raise:
-            raise exception('foo')
-
-        return kwargs
-
-    # No dependencies
-    assert_equal(
-        task_runner([], function, (False,), {'foo': 'bar', 'lorem': 'ipsum'}),
-        {'foo': 'bar', 'lorem': 'ipsum'}
-    )
-
-    # make sure exceptions don't fall through
-    assert_false(
-        task_runner([], function, (True,), {'foo': 'bar', 'lorem': 'ipsum'}),
-        {'foo': 'bar', 'lorem': 'ipsum'}
-    )
-
-    # make sure this isn't true for KeyboardInterrupt
-    with assert_raises(KeyboardInterrupt):
-        task_runner([], function, (True, KeyboardInterrupt))
-
-    with assert_raises(SystemExit):
-        task_runner([], function, (True, SystemExit))
-
-    # Failed dependency
-    futures = []
-    for result in (True, True, True, False, True):
-        future = Future()
-        future.set_result(result)
-        futures.append(future)
-
-    assert_false(task_runner(futures, function, (False,),
-                             {'foo': 'bar', 'lorem': 'ipsum'}))
-    assert_false(task_runner(futures, function, (True,),
-                             {'foo': 'bar', 'lorem': 'ipsum'}))
-    assert_false(task_runner(futures, function, (True, KeyboardInterrupt)))
-    assert_false(task_runner(futures, function, (True, SystemExit)))
-
-    # All successful dependencies
-    futures = []
-    for result in (True, True, True, True):
-        future = Future()
-        future.set_result(result)
-        futures.append(future)
-
-    assert_equal(
-        task_runner(
-            futures, function, (False,), {'foo': 'bar', 'lorem': 'ipsum'}
-        ),
-        {'foo': 'bar', 'lorem': 'ipsum'}
-    )
-    assert_false(
-        task_runner(
-            futures, function, (True,), {'foo': 'bar', 'lorem': 'ipsum'}
-        )
-    )
-
-    with assert_raises(KeyboardInterrupt):
-        task_runner([], function, (True, KeyboardInterrupt))
-
-    with assert_raises(SystemExit):
-        task_runner([], function, (True, SystemExit))
+    return (getpid(), current_thread().name)
 
 
 def test_run_tasks():
     """
     Test the run_tasks function.
     """
+    from arbiter.exceptions import (
+        FailedDependencyError,
+        UnsatisfiedDependencyError,
+    )
     from arbiter.runner import run_tasks
     from arbiter.task import create_task
 
-    call_stack = []
-    def call(name, succeed=True):
+    def function(fail=False, exception=Exception, **kwargs):
         """
-        Add a name to the call stack.
+        A function for testing run_tasks.
         """
-        call_stack.append(name)
+        if fail:
+            raise exception()
 
-        return succeed
+        return kwargs
 
-    # all successful
-    completed, failed = run_tasks([
-        create_task('foo', call, args=('foo',)),
-        create_task('bar', call, dependencies=['foo'], args=('bar',)),
-        create_task('baz', call, dependencies=['bar'], args=('baz',)),
-        create_task('lorem', call, args=('lorem',)),
-        create_task('ipsum', call, dependencies=['lorem'], args=('ipsum',)),
-    ])
-
-    assert_equal(
-        completed,
-        {'foo', 'bar', 'baz', 'lorem', 'ipsum'}
-    )
-
-    assert_equal(failed, set())
-
-    assert_equal(
-        set(call_stack),
-        {'foo', 'bar', 'baz', 'lorem', 'ipsum'}
-    )
-
-    assert_true(call_stack.index('foo') < call_stack.index('bar'))
-    assert_true(call_stack.index('bar') < call_stack.index('baz'))
-    assert_true(call_stack.index('lorem') < call_stack.index('ipsum'))
-
-    # some failures
-    call_stack = []
-    completed, failed = run_tasks([
-        create_task('foo', call, args=('foo',)),
-        create_task('bar', call, dependencies=['foo'], args=('bar', False)),
-        create_task('baz', call, dependencies=['bar'], args=('baz',)),
-        create_task('lorem', call, args=('lorem', False)),
-        create_task('ipsum', call, dependencies=['lorem'], args=('ipsum',)),
-    ])
-
-    assert_equal(completed, {'foo'})
-
-    assert_equal(failed, {'bar', 'baz', 'lorem', 'ipsum'})
-
-    assert_equal(
-        set(call_stack),
-        {'foo', 'bar', 'lorem'}
-    )
-
-    assert_true(call_stack.index('foo') < call_stack.index('bar'))
-
-    # unrunnable tests & out of order
-    call_stack = []
-    completed, failed = run_tasks([
-        create_task('ipsum', call, dependencies=['lorem'], args=('ipsum',)),
-        create_task('bar', call, dependencies=['foo'], args=('bar',)),
-        create_task('foo', call, args=('foo',)),
-        create_task('baz', call, dependencies=['bar'], args=('baz',)),
-        create_task('lorem', call, args=('lorem', False)),
-        create_task('bravo', call, dependencies=['alpha'], args=('bravo',)),
-    ])
-
-    assert_equal(completed, {'foo', 'bar', 'baz'})
-
-    assert_equal(failed, {'lorem', 'ipsum', 'bravo'})
-
-    assert_equal(
-        set(call_stack),
-        {'foo', 'bar', 'baz', 'lorem'}
-    )
-
-    assert_true(call_stack.index('foo') < call_stack.index('bar'))
-    assert_true(call_stack.index('bar') < call_stack.index('baz'))
-
-
-def test_run_executor():
-    """
-    Test that run_tasks properly uses threads/processes.
-    """
-    global RESULTS
-
-    from arbiter.runner import run_tasks
-    from arbiter.task import create_task
-
-    # 1 thread
+    # no dependencies
     completed, failed = run_tasks(
         [
-            create_task('foo', procable_call, args=('foo',)),
             create_task(
-                'bar', procable_call, dependencies=['foo'], args=('bar',)
+                'foo',
+                function,
+                kwargs={'bar': 'baz', 'lorem': 'ipsum'},
             ),
             create_task(
-                'baz', procable_call, dependencies=['bar'], args=('baz',)
-            ),
-            create_task('lorem', procable_call, args=('lorem',)),
-            create_task(
-                'ipsum', procable_call, dependencies=['lorem'], args=('ipsum',)
+                'bar',
+                function,
+                args=(True, ImportError),
             ),
         ],
     )
 
     assert_equal(
         completed,
-        {'foo', 'bar', 'baz', 'lorem', 'ipsum'}
+        {
+            'foo': {'bar': 'baz', 'lorem': 'ipsum'},
+        }
     )
 
-    assert_equal(failed, set())
+    assert_equal(set(failed.keys()), {'bar'})
+    assert_true(isinstance(failed['bar'], ImportError))
+
+    # die on bad exceptions
+    with assert_raises(KeyboardInterrupt):
+        run_tasks(
+            [
+                create_task('foo', function, args=(True, KeyboardInterrupt))
+            ]
+        )
+
+    with assert_raises(SystemExit):
+        run_tasks(
+            [
+                create_task('foo', function, args=(True, SystemExit))
+            ]
+        )
+
+    # dependencies and failures
+    # Things this tests:
+    #  - tasks with no dependencies
+    #  - tasks with a successful dependency
+    #  - tasks with unsuccessful dependency
+    #  - tasks dependent on non-existent tasks
+    #  - tasks dependent on themselves
+    #  - tasks dependent in a chain
+    #  - tasks with multiple dependencies
+    #  - out-of-order tasks
+    completed, failed = run_tasks(
+        [
+            create_task(
+                'bar',
+                function,
+                dependencies=['foo']
+            ),
+            create_task(
+                'baz',
+                function,
+                args=(True, ImportError),
+                dependencies=['bar']
+            ),
+            create_task(
+                'bell',
+                function,
+                dependencies=['bar', 'charlie']
+            ),
+            create_task(
+                'bravo',
+                function,
+                dependencies=['alpha']
+            ),
+            create_task(
+                'cage',
+                function,
+                dependencies=['travolta']
+            ),
+            create_task(
+                'charlie',
+                function,
+                dependencies=['bravo']
+            ),
+            create_task(
+                'danger doom',
+                function,
+                dependencies=['mf doom', 'danger mouse']
+            ),
+            create_task(
+                'danger mouse',
+                function,
+            ),
+            create_task(
+                'foo',
+                function,
+                kwargs={'bar': 'baz', 'lorem': 'ipsum'},
+            ),
+            create_task(
+                'mf doom',
+                function,
+                kwargs={'mm': 'food'},
+            ),
+            create_task(
+                'oroboros',
+                function,
+                dependencies=['oroboros']
+            ),
+            create_task(
+                'qux',
+                function,
+                dependencies=['baz']
+            ),
+            create_task(
+                'travolta',
+                function,
+                dependencies=['cage']
+            ),
+        ],
+    )
 
     assert_equal(
-        set(RESULTS.keys()),
-        {'foo', 'bar', 'baz', 'lorem', 'ipsum'}
+        completed,
+        {
+            'foo': {'bar': 'baz', 'lorem': 'ipsum'},
+            'bar': {},
+            'mf doom': {'mm': 'food'},
+            'danger mouse': {},
+            'danger doom': {}
+        }
     )
 
-    expected_pid = getpid()
-    for pid, thread_name in RESULTS.values():
-        assert_equal(pid, expected_pid)
-        assert_not_equal(thread_name, 'MainThread')
+    assert_equal(
+        set(failed.keys()),
+        {
+            'baz',
+            'qux',
+            'bravo',
+            'charlie',
+            'oroboros',
+            'travolta',
+            'cage',
+            'bell',
+        }
+    )
 
-    # 1 proc
-    # RESULTS = {}
-    # completed, failed = run_tasks(
-    #     [
-    #         create_task('foo', procable_call, args=('foo',)),
-    #         create_task(
-    #             'bar', procable_call, dependencies=['foo'], args=('bar',)
-    #         ),
-    #         create_task(
-    #             'baz', procable_call, dependencies=['bar'], args=('baz',)
-    #         ),
-    #         create_task('lorem', procable_call, args=('lorem',)),
-    #         create_task(
-    #             'ipsum', procable_call, dependencies=['lorem'], args=('ipsum',)
-    #         ),
-    #     ],
-    #     processes=True,
-    # )
+    assert_true(isinstance(failed['baz'], ImportError))
+    assert_equal(failed['baz'].args, ())
 
-    # assert_equal(
-    #     completed,
-    #     {'foo', 'bar', 'baz', 'lorem', 'ipsum'}
-    # )
+    assert_true(isinstance(failed['qux'], FailedDependencyError))
+    assert_equal(failed['qux'].args, ('baz',))
 
-    # assert_equal(failed, set())
+    assert_true(isinstance(failed['bravo'], UnsatisfiedDependencyError))
+    assert_equal(failed['bravo'].args, ({'alpha'},))
 
-    # assert_equal(
-    #     set(call_stack.keys()),
-    #     {'foo', 'bar', 'baz', 'lorem', 'ipsum'}
-    # )
+    assert_true(isinstance(failed['charlie'], UnsatisfiedDependencyError))
+    assert_equal(failed['charlie'].args, ({'bravo'},))
 
-    # expected_pid = getpid()
-    # for pid, thread_name in RESULTS.values():
-    #     assert_not_equal(pid, expected_pid)
-    #     assert_equal(thread_name, 'MainThread')
+    assert_true(isinstance(failed['oroboros'], UnsatisfiedDependencyError))
+    assert_equal(failed['oroboros'].args, ({'oroboros'},))
+
+    assert_true(isinstance(failed['travolta'], UnsatisfiedDependencyError))
+    assert_equal(failed['travolta'].args, ({'cage'},))
+
+    assert_true(isinstance(failed['cage'], UnsatisfiedDependencyError))
+    assert_equal(failed['cage'].args, ({'travolta'},))
+
+    assert_true(isinstance(failed['bell'], UnsatisfiedDependencyError))
+    assert_equal(failed['bell'].args, ({'charlie'},))
+
+    # duplicate name
+    with assert_raises(TypeError):
+        run_tasks(
+            [
+                create_task('foo', function),
+                create_task('foo', function),
+            ]
+        )
+
+
+def test_run_executor():
+    """
+    Test that run_tasks works with both threads and processes.
+    """
+    from arbiter.runner import run_tasks
+    from arbiter.task import create_task
+
+    pid = getpid()
+
+    # 1 thread
+    completed, failed = run_tasks(
+        [
+            create_task('foo', function_call),
+            create_task('bar', function_call),
+            create_task('baz', function_call),
+        ],
+    )
+
+    assert_equal(set(completed.keys()), {'foo', 'bar', 'baz'})
+
+    for name in {'foo', 'bar', 'baz'}:
+        assert_equal(completed[name][0], pid)
+        assert_not_equal(completed[name][1], 'MainThread')
+
+    # 1 process
+    completed, failed = run_tasks(
+        [
+            create_task('foo', function_call),
+            create_task('bar', function_call),
+            create_task('baz', function_call),
+        ],
+        processes=True
+    )
+
+    assert_equal(set(completed.keys()), {'foo', 'bar', 'baz'})
+
+    main_pid = getpid()
+
+    for name in {'foo', 'bar', 'baz'}:
+        assert_not_equal(completed[name][0], main_pid)
+        assert_equal(completed[name][1], 'MainThread')
+
+    # multiple threads
+    completed, failed = run_tasks(
+        [
+            create_task(num, function_call) for num in range(1000)
+        ],
+        max_workers=5,
+    )
+
+    assert_equal(set(completed.keys()), {num for num in range(1000)})
+
+    pids = set()
+    threads = set()
+    for pid, thread in completed.values():
+        pids.add(pid)
+        threads.add(thread)
+
+    assert_equal(pids, {main_pid})
+
+    assert_true('MainThread' not in threads)
+    assert_true(1 < len(threads) <= 5)  # Eventually, replace with better test
+
+    # multiple processes
+    completed, failed = run_tasks(
+        [
+            create_task(num, function_call) for num in range(1000)
+        ],
+        max_workers=5,
+        processes=True
+    )
+
+    assert_equal(set(completed.keys()), {num for num in range(1000)})
+
+    pids = set()
+    threads = set()
+    for pid, thread in completed.values():
+        pids.add(pid)
+        threads.add(thread)
+
+    assert_true(main_pid not in pids)
+    assert_true(1 < len(pids) <= 5)  # Eventually, replace with better test
+
+    assert_equal(threads, {'MainThread'})
