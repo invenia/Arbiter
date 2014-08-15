@@ -1,11 +1,10 @@
 """
 Tests for the runner submodule.
 """
-from concurrent.futures import Future
 from os import getpid
 from threading import current_thread
 
-from nose.tools import (assert_true, assert_false, assert_equal,
+from nose.tools import (assert_true, assert_equal,
                         assert_not_equal, assert_raises)
 
 

@@ -87,16 +87,16 @@ def run_tasks(tasks, max_workers=1, processes=False):
                 break
 
     # some tasks may have been unrunnable
-    unrun_names = set()
+    names = set()
 
     for task in tasks:
         # later unrunnable tasks may have depended on this task
-        unrun_names.add(task.name)
+        names.add(task.name)
 
         failed[task.name] = UnsatisfiedDependencyError(
             {
                 dependency for dependency in task.dependencies
-                if dependency in unrun_names or (
+                if dependency in names or (
                     dependency not in completed and dependency not in failed
                 )
             }

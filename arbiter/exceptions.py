@@ -1,6 +1,8 @@
 """
 Custom Exceptions used by arbiter.
 """
+
+
 class DependencyException(Exception):
     """
     A base class for exceptions related to task dependencies.
