@@ -81,10 +81,9 @@ def run_tasks(tasks, max_workers=1, processes=False):
                 # remove the future from the set of futures
                 futures.remove(future)
 
-                updated = True  # new tasks may be runnable
-
-                # a task completed, new tasks may be possible
-                break
+                if tasks:  # new task may be runnable
+                    updated = True
+                    break
 
     # some tasks may have been unrunnable
     names = set()
