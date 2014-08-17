@@ -1,8 +1,11 @@
 """
 Tests for the runner submodule.
 """
+from concurrent.futures import TimeoutError
+from datetime import timedelta
 from os import getpid
 from threading import current_thread
+from time import sleep
 
 from nose.tools import (assert_true, assert_false, assert_equal,
                         assert_not_equal, assert_raises)
@@ -318,3 +321,46 @@ def test_run_executor():
     assert_equal(threads, {'MainThread'})
 
     assert_true(1 < len(pids) <= 5)  # Eventually, replace with better test
+
+
+def test_run_tasks_timeout():
+    """
+    Test that run_tasks properly handles timeouts.
+    """
+    from arbiter.exceptions import UncancelledTaskError
+    from arbiter.runner import run_tasks, Result
+    from arbiter.task import create_task
+
+    def passing_function():
+        """
+        function that should complete.
+        """
+
+    def timeout_function():
+        """
+        function that will not complete.
+        """
+        sleep(0.5)
+
+        return 'finished'
+
+    results = run_tasks(
+        [
+            create_task('foo', passing_function),
+            create_task('bar', timeout_function, dependencies=['foo']),
+            create_task('baz', passing_function, dependencies=['bar']),
+        ],
+        timeout=timedelta(seconds=0.2),
+    )
+
+    assert_equal(results['foo'], Result(True, None))
+
+    assert_false(results['bar'].success)
+    assert_true(isinstance(results['bar'].value, TimeoutError))
+    assert_true(isinstance(results['bar'].value, UncancelledTaskError))
+
+    assert_equal(results['bar'].value.future.result(), 'finished')
+
+    assert_false(results['baz'].success)
+    assert_true(isinstance(results['baz'].value, TimeoutError))
+    assert_false(isinstance(results['baz'].value, UncancelledTaskError))

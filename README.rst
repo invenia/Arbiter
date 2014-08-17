@@ -92,14 +92,26 @@ that had a dependency that failed.
 dependency that doesn't exist, or can't be run because of a circular
 dependency.
 
-As long as task functions are guaranteed to eventually complete or fail,
-Arbiter will eventually complete.
+Arbiter is guaranteed to eventually complete (as long as the tasks you give it
+are guaranteed to eventually complete or faile), but if you have some stricter
+time constraints you can use the `timeout` flag::
+
+    results = run_tasks(task_list, timeout=timedelta(minutes=1))
+
+NOTE: If a timeout occurs, queued tasks will be cancelled and `run_tasks` will
+return, but any running tasks will continue to run (python will not exit until
+these tasks complete). This is a property of the `Future` class, so it cannot
+easily be worked around. Where possible, it may be preferrable to directly add
+timeout code to your task.
+
+For tasks that are already running, `arbiter.exceptions.UncancelledTaskError`
+is returned as a result. `UncancelledTaskError` subclasses `TimeoutError`, so
+you can just treat it as a `TimeoutError`, but also includes a `future`
+attribute so that you can deal with it directly.
 
 Forthcoming features
 ====================
 Features that will, eventually, be in arbiter:
-
- * timeouts for running tasks
 
  * passing results from dependent tasks
 

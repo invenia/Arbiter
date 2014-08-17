@@ -1,6 +1,7 @@
 """
 Custom Exceptions used by arbiter.
 """
+from concurrent.futures import TimeoutError
 
 
 class DependencyException(Exception):
@@ -28,3 +29,14 @@ class UnsatisfiedDependencyError(DependencyException):
       * a task has a dependency on a task with an unsatisfied
         dependency.
     """
+
+
+class UncancelledTaskError(TimeoutError):
+    """
+    Raised when a TimeoutError occurs, but a task is already running, so
+    it can't be cancelled.
+    """
+    def __init__(self, future):
+        super(UncancelledTaskError, self).__init__()
+
+        self.future = future

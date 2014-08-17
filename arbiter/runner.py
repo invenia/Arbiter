@@ -8,7 +8,8 @@ from datetime import datetime
 
 from arbiter.exceptions import (
     FailedDependencyError,
-    UnsatisfiedDependencyError
+    UnsatisfiedDependencyError,
+    UncancelledTaskError,
 )
 
 
@@ -36,7 +37,10 @@ def run_tasks(tasks, max_workers=1, processes=False, timeout=None):
     results = {}
     futures = set()
 
-    with get_executor(max_workers, processes=processes) as executor:
+    # Try-finally instead of context manager because we don't want to
+    # wait on shutdown.
+    executor = get_executor(max_workers, processes=processes)
+    try:
         updated = True
         while futures or (tasks and updated):
             updated = False
@@ -75,7 +79,9 @@ def run_tasks(tasks, max_workers=1, processes=False, timeout=None):
                 timeout = (finish_date - datetime.utcnow()).total_seconds()
 
             try:
-                for future in as_completed(futures, timeout=timeout):
+                generator = as_completed(futures, timeout=timeout)
+
+                for future in generator:
                     try:
                         results[future.name] = Result(True, future.result())
                     except Exception as exception:
@@ -87,10 +93,16 @@ def run_tasks(tasks, max_workers=1, processes=False, timeout=None):
                     if tasks:  # new task may be runnable
                         updated = True
                         break
+
+                generator.close()  # don't let timeout throw an exception
             except TimeoutError as exception:
                 for future in futures:
-                    results[future.name] = Result(False, exception)
-                    future.cancel()
+                    if future.cancel():  # task cancelled
+                        results[future.name] = Result(False, exception)
+                    else:  # already running
+                        results[future.name] = Result(
+                            False, UncancelledTaskError(future)
+                        )
 
                 futures = []
 
@@ -98,6 +110,10 @@ def run_tasks(tasks, max_workers=1, processes=False, timeout=None):
                     results[task.name] = Result(False, exception)
 
                 tasks = []
+
+                break
+    finally:
+        executor.shutdown(wait=False)
 
     # some tasks may have been unrunnable
     names = set()
