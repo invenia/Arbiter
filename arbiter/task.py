@@ -22,12 +22,12 @@ from time import sleep
 # should be a tuple. kwargs should be a dict.
 Task = namedtuple(
     'Task',
-    ['name', 'function', 'dependencies', 'args', 'kwargs']
+    ['name', 'function', 'dependencies', 'args', 'kwargs', 'chain']
 )
 
 
 def create_task(name, function, dependencies=None, args=(), kwargs=None,
-                retries=0, delay=timedelta()):
+                chain=False, retries=0, delay=timedelta()):
     """
     Create a new task to be run by arbiter.
 
@@ -39,6 +39,8 @@ def create_task(name, function, dependencies=None, args=(), kwargs=None,
         must be successfully completed in order for this task to be run.
     args: (optional, ()) A tuple of arguments to pass to function.
     kwargs: (optional, None) A dict of arguments to pass to function.
+    chain: (optional, False) If true, the results of dependent tasks
+        will be be passed through to the task as named arguments.
     retries: (optional, 0) The number of times to retry on failure.
     delay: (optional, 0 seconds) The amount of time to delay between
         retries.
@@ -54,7 +56,7 @@ def create_task(name, function, dependencies=None, args=(), kwargs=None,
     if retries > 0:
         function = retry(retries, delay)(function)
 
-    return Task(name, function, dependencies, args, kwargs)
+    return Task(name, function, dependencies, args, kwargs, chain)
 
 
 def retry(retries, delay=timedelta()):

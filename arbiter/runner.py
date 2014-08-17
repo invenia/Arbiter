@@ -62,8 +62,14 @@ def run_tasks(tasks, max_workers=1, processes=False, timeout=None):
                         break
                 else:  # task can be run
                     updated = True
+
+                    kwargs = dict(task.kwargs)
+                    if task.chain:
+                        for name in task.dependencies:
+                            kwargs[name] = results[name].value
+
                     future = executor.submit(
-                        task.function, *task.args, **task.kwargs
+                        task.function, *task.args, **kwargs
                     )
 
                     # as_completed takes a list of tasks, but we need

@@ -95,6 +95,7 @@ def test_run_tasks():
     #  - tasks dependent in a chain
     #  - tasks with multiple dependencies
     #  - out-of-order tasks
+    #  - chaining
     results = run_tasks(
         [
             create_task(
@@ -129,12 +130,13 @@ def test_run_tasks():
                 dependencies=['bravo']
             ),
             create_task(
-                'danger doom',
+                'danger_doom',
                 function,
-                dependencies=['mf doom', 'danger mouse']
+                dependencies=['mf_doom', 'danger_mouse'],
+                chain=True
             ),
             create_task(
-                'danger mouse',
+                'danger_mouse',
                 function,
             ),
             create_task(
@@ -143,7 +145,7 @@ def test_run_tasks():
                 kwargs={'bar': 'baz', 'lorem': 'ipsum'},
             ),
             create_task(
-                'mf doom',
+                'mf_doom',
                 function,
                 kwargs={'mm': 'food'},
             ),
@@ -171,9 +173,9 @@ def test_run_tasks():
         {
             'foo': {'bar': 'baz', 'lorem': 'ipsum'},
             'bar': {},
-            'mf doom': {'mm': 'food'},
-            'danger mouse': {},
-            'danger doom': {}
+            'mf_doom': {'mm': 'food'},
+            'danger_mouse': {},
+            'danger_doom': {'mf_doom': {'mm': 'food'}, 'danger_mouse': {}}
         }
     )
 

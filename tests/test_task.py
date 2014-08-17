@@ -17,14 +17,14 @@ def test_create_task():
     # No dependencies
     assert_equal(
         create_task('foo', function),
-        Task('foo', function, frozenset(), (), {})
+        Task('foo', function, frozenset(), (), {}, False)
     )
 
     # Dependencies
     actual = create_task('foo', function, {'bar', 'baz'})
     assert_equal(
         actual,
-        Task('foo', function, frozenset(('bar', 'baz')), (), {})
+        Task('foo', function, frozenset(('bar', 'baz')), (), {}, False)
     )
     assert_equal(type(actual.dependencies), frozenset)
 
@@ -32,14 +32,20 @@ def test_create_task():
     actual = create_task('foo', function, (name for name in ('bar', 'baz')))
     assert_equal(
         actual,
-        Task('foo', function, frozenset(('bar', 'baz')), (), {})
+        Task('foo', function, frozenset(('bar', 'baz')), (), {}, False)
     )
     assert_equal(type(actual.dependencies), frozenset)
 
     # passing args and kwargs
     assert_equal(
         create_task('foo', function, args=('foo',), kwargs={'bar': 'baz'}),
-        Task('foo', function, frozenset(), ('foo',), {'bar': 'baz'})
+        Task('foo', function, frozenset(), ('foo',), {'bar': 'baz'}, False)
+    )
+
+    # chaining
+    assert_equal(
+        create_task('foo', function, args=('foo',), chain=True),
+        Task('foo', function, frozenset(), ('foo',), {}, True)
     )
 
     # test retrying

@@ -109,15 +109,19 @@ is returned as a result. `UncancelledTaskError` subclasses `TimeoutError`, so
 you can just treat it as a `TimeoutError`, but also includes a `future`
 attribute so that you can deal with it directly.
 
-Forthcoming features
-====================
-Features that will, eventually, be in arbiter:
 
- * passing results from dependent tasks
+### Chaining ###
+Results from a task can be passed as named arguments by passing `chain=true` to
+`create_task`::
 
- * open sourcing
-
- * availability on PyPI
+    results = run_tasks(
+        [
+            create_task('response', requests.get, args=('http://weather.yahooapis.com/forecastrss?w=2972&u=c',)),
+            create_task('temperature', lambda response: re.search('temp="(\d*)"', response.text).group(1), dependencies=['response'], chain=True)
+            create_task('text', "The current temperature is: {temperature}.".format, dependencies=['temperature'], chain=True)
+        ]
+    )
+    print(results['text'].value)  # "The current temperature is 17."
 
 License
 =======
