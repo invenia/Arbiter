@@ -1,6 +1,7 @@
 """
 The actual task runner.
 """
+from collections import namedtuple
 from concurrent.futures import (as_completed, ProcessPoolExecutor,
                                 ThreadPoolExecutor)
 
@@ -10,11 +11,13 @@ from arbiter.exceptions import (
 )
 
 
+Result = namedtuple('Result', ['success', 'value'])
+
+
 def run_tasks(tasks, max_workers=1, processes=False):
     """
     Concurrently run a set of tasks, resolving dependencies as
-    necessary. Returns a tuple containg: (completed_tasks, failed_tasks)
-    where both completed_tasks and failed_tasks are sets of task names.
+    necessary. Returns a dict containing task results.
 
     tasks: An iterable of tasks.
     max_workers: (optional, 1) The maximum number of workers to use for
@@ -29,8 +32,7 @@ def run_tasks(tasks, max_workers=1, processes=False):
         else:
             names.add(task.name)
 
-    completed = {}
-    failed = {}
+    results = {}
 
     if processes:
         get_executor = ProcessPoolExecutor
@@ -48,13 +50,16 @@ def run_tasks(tasks, max_workers=1, processes=False):
 
             for task in tasks:
                 for name in task.dependencies:
-                    if name not in completed:
-                        if name in failed:  # dependency failed
-                            updated = True
-                            failed[task.name] = FailedDependencyError(name)
-                        else:  # dependency isn't finished
-                            remaining_tasks.append(task)
+                    dependency = results.get(name)
 
+                    if dependency is None:  # not yet complete
+                        remaining_tasks.append(task)
+                        break
+                    elif not dependency.success:
+                        updated = True
+                        results[task.name] = Result(
+                            False, FailedDependencyError(name)
+                        )
                         break
                 else:  # task can be run
                     updated = True
@@ -74,9 +79,9 @@ def run_tasks(tasks, max_workers=1, processes=False):
             for future in as_completed(futures):
 
                 try:
-                    completed[future.name] = future.result()
+                    results[future.name] = Result(True, future.result())
                 except Exception as exception:
-                    failed[future.name] = exception
+                    results[future.name] = Result(False, exception)
 
                 # remove the future from the set of futures
                 futures.remove(future)
@@ -92,13 +97,14 @@ def run_tasks(tasks, max_workers=1, processes=False):
         # later unrunnable tasks may have depended on this task
         names.add(task.name)
 
-        failed[task.name] = UnsatisfiedDependencyError(
-            {
-                dependency for dependency in task.dependencies
-                if dependency in names or (
-                    dependency not in completed and dependency not in failed
-                )
-            }
+        results[task.name] = Result(
+            False,
+            UnsatisfiedDependencyError(
+                {
+                    dependency for dependency in task.dependencies
+                    if dependency in names or dependency not in results
+                }
+            )
         )
 
-    return completed, failed
+    return results

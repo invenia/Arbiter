@@ -6,7 +6,7 @@ handles resolving dependency between tasks::
 
     from arbiter import create_task, run_tasks
 
-    completed, failed = run_tasks(
+    results = run_tasks(
         [
             create_task('foo', foo_function, args=('bar', 'baz')),
             create_task('lorem', lorem_function, dependencies=['foo']),
@@ -73,22 +73,24 @@ dependencies::
 
     from arbiter import run_tasks
 
-    completed, failed = run_tasks(task_list)
+    results = run_tasks(task_list)
 
 By default, run_tasks will run the tasks with one worker thread. workers can be
 increased using the `max_workers` argument, and `processes=True` will run the
 tasks using working processes instead of threads (NOTE: some tasks may only run
 using threads).
 
-`run_tasks` returns dicts of completed and failed tasks. The completed tasks
-are a dictionary with task names as keys, and return values as values. The
-failed tasks will contain task  names as keys, and the exception thrown when
-running the task. Tasks that can't run because a dependency failed are returned
-with an `arbiter.exceptions.FailedDependencyError` with the failed function as
-its value. Tasks that can't run because of a dependency that doesn't exist, or
-can't run because of a circular depeendency will return with an
-`arbiter.exceptions.UnsatisfiedDependencyError` with a set of unrun
-dependencies as its value.
+`run_tasks` returns a dict of `Result` objects. `result.success` is a boolean
+value signifying whether the task completed. If successful, `result.value` will
+contain the task's return value. If the task failed, `result.value` will
+contain the exception that was thrown that caused the task to fail.
+
+Two custom exceptions exist to signify errors that prevented the task from
+running at all. `arbiter.exceptions.FailedDependencyError` represents a task
+that had a dependency that failed.
+`arbiter.exceptions.UnsatisfiedDependencyError` represents a task that had a
+dependency that doesn't exist, or can't be run because of a circular
+dependency.
 
 As long as task functions are guaranteed to eventually complete or fail,
 Arbiter will eventually complete.
