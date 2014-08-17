@@ -2,3 +2,4 @@ futures
 
 coverage
 nose
+python-coveralls

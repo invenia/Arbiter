@@ -1,0 +1,12 @@
+language: python
+python:
+  - "3.4"
+  - "3.3"
+  - "2.7"
+  - "pypy"
+install:
+  - "pip install -r requirements-tests.txt"
+  - "python setup.py install"
+script: nosetests --with-coverage --cover-package arbiter -v
+after_success:
+  - coveralls

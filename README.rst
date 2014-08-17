@@ -1,6 +1,11 @@
 =======
 Arbiter
 =======
+.. image:: https://travis-ci.org/invenia/Arbiter.svg?branch=master
+  :target: https://travis-ci.org/invenia/Arbiter?branch=master
+.. image:: https://coveralls.io/repos/invenia/Arbiter/badge.png?branch=master
+  :target: https://coveralls.io/r/invenia/Arbiter?branch=master
+
 Arbiter is a 2.7, 3.3+ compatible concurrent task runner that automatically
 handles resolving dependency between tasks::
 
