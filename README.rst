@@ -110,7 +110,8 @@ you can just treat it as a `TimeoutError`, but also includes a `future`
 attribute so that you can deal with it directly.
 
 
-### Chaining ###
+Chaining
+~~~~~~~~
 Results from a task can be passed as named arguments by passing `chain=true` to
 `create_task`::
 
