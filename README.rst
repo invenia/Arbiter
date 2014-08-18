@@ -98,7 +98,7 @@ dependency that doesn't exist, or can't be run because of a circular
 dependency.
 
 Arbiter is guaranteed to eventually complete (as long as the tasks you give it
-are guaranteed to eventually complete or faile), but if you have some stricter
+are guaranteed to eventually complete or fail), but if you have some stricter
 time constraints you can use the `timeout` flag::
 
     results = run_tasks(task_list, timeout=timedelta(minutes=1))
