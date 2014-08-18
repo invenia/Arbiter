@@ -131,4 +131,4 @@ Results from a task can be passed as named arguments by passing `chain=true` to
 
 License
 =======
-Arbiter is not yet provided under an open-source license
+Arbiter is provided under an MIT License.
