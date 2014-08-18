@@ -3,13 +3,16 @@ to install:
 
     python setup.py install
 """
-from distutils.core import setup
+try:
+    from setuptools import setup
+except ImportError:
+    from distutils.core import setup
 
 setup(
     name="arbiter",
-    version="0.2.0",
+    version="0.2.1",
     author="Brendan Curran-Johnson",
-    author_email="brendan.curran.johnson@invenia.ca",
+    author_email="brendan@bcjbcj.ca",
     url="https://github.com/invenia/Arbiter",
     description="A concurrent task-runner that resolves dependency issues",
     long_description=open('README.rst', 'r').read(),
@@ -26,5 +29,8 @@ setup(
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: Implementation :: CPython",
         "Programming Language :: Python :: Implementation :: PyPy",
+    ],
+    install_requires=[
+        'futures',
     ],
 )
