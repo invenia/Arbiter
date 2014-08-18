@@ -22,7 +22,9 @@ handles resolving dependency between tasks::
 
 Installation
 ============
-Arbiter is not yet on PyPI, so it has to be installed manually.
+Arbiter is available on PyPI. To install::
+
+    $ pip install arbiter
 
 Prerequisites
 -------------
@@ -66,7 +68,7 @@ Any number of dependencies may be supplied.
 It's quite possible that your task might require multiple tries to succeed. To
 automatically force a task to retry using the `retries` and `delay` arguments::
 
-    create_task('failable', sketchy_function, replies=3, delay=timedelta(seconds=5))
+    create_task('failable', sketchy_function, retries=3, delay=timedelta(seconds=5))
 
 If `delay` isn't given, the function will retry immediately.
 
