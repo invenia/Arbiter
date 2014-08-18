@@ -1,2 +1,3 @@
 v0.0.0, 2014/08/11 -- Work begins
 v0.1.0, 2014/08/14 -- First Working Version
+v0.2.0, 2014/08/18 -- Timeouts, Chaining, MIT License

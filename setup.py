@@ -7,7 +7,7 @@ from distutils.core import setup
 
 setup(
     name="arbiter",
-    version="0.1.0",
+    version="0.2.0",
     author="Brendan Curran-Johnson",
     author_email="brendan.curran.johnson@invenia.ca",
     url="https://github.com/invenia/Arbiter",
