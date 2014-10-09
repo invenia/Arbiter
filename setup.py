@@ -8,17 +8,34 @@ try:
 except ImportError:
     from distutils.core import setup
 
+DESCRIPTION = "A task-dependency solver"
+
+try:
+    LONG_DESCRIPTION = open('README.rst').read()
+except:
+    LONG_DESCRIPTION = DESCRIPTION
+
 setup(
     name="arbiter",
+    description=DESCRIPTION,
+    long_description=LONG_DESCRIPTION,
     version="0.2.1",
     author="Brendan Curran-Johnson",
     author_email="brendan@bcjbcj.ca",
+    license="MIT License",
     url="https://github.com/invenia/Arbiter",
-    description="A concurrent task-runner that resolves dependency issues",
-    long_description=open('README.rst', 'r').read(),
-    packages=["arbiter"],
-    license="LICENSE.txt",
-    classifiers=[
+
+    packages=(
+        "arbiter",
+    ),
+
+    tests_require=(
+        'coverage',
+        'nose',
+        'python-coveralls',
+    ),
+
+    classifiers=(
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
@@ -29,8 +46,5 @@ setup(
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: Implementation :: CPython",
         "Programming Language :: Python :: Implementation :: PyPy",
-    ],
-    install_requires=[
-        'futures',
-    ],
+    ),
 )
