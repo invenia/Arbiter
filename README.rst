@@ -6,7 +6,7 @@ Arbiter
 .. image:: https://coveralls.io/repos/invenia/Arbiter/badge.png?branch=master
   :target: https://coveralls.io/r/invenia/Arbiter?branch=master
 
-Arbiter is a 2.6, 2.7, 3.3+ compatible task-dependency solver. Given a set of
+Arbiter is a 2.7, 3.3+ compatible task-dependency solver. Given a set of
 tasks and their dependencies, arbiter calculates what tasks are currently
 runnable::
 
@@ -14,20 +14,21 @@ runnable::
 
     arbiter = Arbiter(
         tasks={
-            'foo': [],
+            'foo': None,
             'bar': ['foo'],
-            'alpha': [],
+            'alpha': None,
             'beta': ['alpha'],
             'bravo': ['alpha'],
             'lorem': ['foo', 'alpha'],
         }
     )
 
-    arbiter.runnable_tasks()  # {'foo', 'alpha'}
+    arbiter.runnable  # {'foo', 'alpha'}
 
-    arbiter.completed_task('alpha', success=True)
+    arbiter.start_task('alpha')
+    arbiter.end_task('alpha', success=True)
 
-    arbiter.runnable_tasks()  # {'foo', 'beta', 'bravo'}
+    arbiter.runnable  # {'foo', 'beta', 'bravo'}
 
 Arbiter is not a task-runner (there are already enough frameworks for
 concurrently running tasks), it is a solver that can be used in conjunction

@@ -2,3 +2,4 @@ v0.0.0, 2014/08/11 -- Work begins
 v0.1.0, 2014/08/14 -- First Working Version
 v0.2.0, 2014/08/18 -- Timeouts, Chaining, MIT License
 v0.2.1, 2014/08/18 -- setuptools for installation (wheels + install_requires)
+v0.3.0, 2014/11/17 -- Complete rewrite/rethink. Arbiter no longer runs tasks.
