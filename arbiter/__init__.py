@@ -1,57 +1,42 @@
 """
-Arbiter is a 2.7/3.3+ compatible task-dependency solver.
+Arbiter is a 2.6/3.3+ compatible task-dependency solver.
 """
 __all__ = ('Arbiter',)
 
-from collections import namedtuple
-from itertools import chain
+
+# from collections import namedtuple
+# from itertools import chain
+
+from arbiter.graph import DirectedGraph
 
 
 class Arbiter(object):
     """
     A task-dependency solver.
     """
-    def __init__(self, tasks=None):
+    def __init__(self, tasks=None, completed=None, failed=None):
         if tasks is None:
             tasks = {}
 
+        if completed is None:
+            completed = set()
+        elif not isinstance(completed, set):
+            raise TypeError(completed)
+
+        if failed is None:
+            failed = set()
+        elif not isinstance(failed, set):
+            raise TypeError(failed)
+
+        self._graph = DirectedGraph(acyclic=True)
+
         self._tasks = set()
-        self._blocked = {}
-        self._runnable = set()
         self._running = set()
-        self._completed = set()
-        self._failed = set()
+        self._completed = completed
+        self._failed = failed
 
         for name, dependencies in tasks.items():
             self.add_task(name, dependencies=dependencies)
-
-    @property
-    def tasks(self):
-        """
-        Read-only access to the tasks set
-        """
-        return frozenset(self._tasks)
-
-    @property
-    def blocked(self):
-        """
-        Read-only access to the blocked dict
-        """
-        return dict(self._blocked)
-
-    @property
-    def runnable(self):
-        """
-        Read-only access to the runnable set
-        """
-        return frozenset(self._runnable)
-
-    @property
-    def running(self):
-        """
-        Read-only access to the running set
-        """
-        return frozenset(self._running)
 
     @property
     def completed(self):
@@ -67,69 +52,6 @@ class Arbiter(object):
         """
         return frozenset(self._failed)
 
-    def remove_dead_tasks(self, keep_orphans=False):
-        """
-        Remove any tasks (by moving them to failed) that won't ever be
-        runnable. A task is dead if:
-
-         *  It forms a circular dependency with one or more other tasks.
-         *  It is dependent on a non-existent task (and keep_orphans is
-            set to True).
-         *  It is dependent on a task that has been marked as dead.
-
-        NOTE: The end_task method already handles removing dead
-            nodes created by a task failing, so we don't need to worry
-            about them here. It also handles updating dependencies on
-            the blocked list when a task completes successfully, so we
-            can assume all dependencies are up-to-date.
-
-        keep_orphans: (optional, False) If True, tasks that are
-            dependent on non-existent tasks won't be considered dead.
-        """
-        dead = set()
-        resolvable = self._runnable.union(self._running)
-
-        for task, dependencies in self._blocked.items():
-            if not (task in resolvable or task in dead):
-                stack = [StackItem(task, {task}, iter(dependencies))]
-                living = True
-
-                while stack and living:
-                    curr = stack[-1]
-
-                    try:
-                        dependency = next(curr.dependencies)
-
-                        if dependency in dead or dependency in curr.visited:
-                            living = False
-                        elif dependency not in resolvable:
-                            child_dependencies = self._blocked.get(dependency)
-
-                            if child_dependencies:
-                                stack.append(StackItem(
-                                    dependency,
-                                    curr.visited.union({dependency}),
-                                    iter(child_dependencies),
-                                ))
-                            else:
-                                # We know that curr.task is an orphan
-                                # because a valid dependency has to be
-                                # in runnable, running, or blocked.
-                                if not keep_orphans:
-                                    living = False
-                    except StopIteration:
-                        resolvable.add(curr.task)
-                        stack.pop()
-
-                    if not living:
-                        while stack:
-                            dead.add(stack.pop().task)
-
-        for task in dead:
-            del self._blocked[task]
-            self._failed.add(task)
-
-
     def add_task(self, name, dependencies=None):
         """
         Add a new task to the solver.
@@ -139,54 +61,63 @@ class Arbiter(object):
         dependencies: (optional, None) An iterable of dependencies that
             must complete successfully prior to running this task. If
             any of these dependencies fail, the task will also fail.
+
+        NOTE: An exception will be thrown if the solver is no longer
+        running
         """
-        if name is None or name in self._tasks:
+        if self._graph is None:
+            raise ValueError  # solver no longer running
+
+        if name is None:
             raise ValueError(name)
 
-        if dependencies is None:
-            dependencies = ()
+        remaining_dependencies = {}
 
-        self._tasks.add(name)
-
-        blockers = set()
-
-        for dependency in dependencies:
+        for dependency in (dependencies or ()):
             if dependency in self._failed:
-                self._failed.add(name)
-
-                # there may already be tasks reliant on this task
+                # are there already tasks dependent on this task?
                 self._cascade_failure(name)
+
+                self._tasks.add(name)
 
                 break
 
             if dependency not in self._completed:
-                blockers.add(dependency)
-        else:  # not a failed task
-            if blockers:
-                self._blocked[name] = blockers
-            else:
-                self._runnable.add(name)
+                remaining_dependencies.add(dependency)
+        else:  # not a failure
+            self._graph.add_node(name, dependencies)
+            self._tasks.add(name)
 
     def start_task(self, name=None):
         """
-        Move a task from runnable to running. Returns the name of the
-        started task (or None if no task is started). If a name of a
-        task is given and it is not runnable, a ValueError will be
-        thrown.
+        Start a task.
 
-        name: (optional, None) The name of the task to start. If not
-            given, a task will be arbitrarily chosen.
+        Returns the name of the started task (or None if no task is
+            started).
+
+        If a specific task is given and it doesn't exist, or isn't
+        runnable, an exception will be thrown.
+
+        name: (optional, None) The task to start. If no task is given, a
+            task will be arbitrarily chosen from the set of runnable
+            tasks (if any are available).
+
+        NOTE: An exception will be thrown if the solver is no longer
+        running
         """
-        if name is None:  # arbitrary task
-            if self._runnable:
-                name = self._runnable.pop()
-            else:
-                return None  # no more runnable tasks remain
-        else:  # task better be runnable
-            if name not in self._runnable:
-                raise ValueError(name)
+        if self._graph is None:
+            raise ValueError  # solver no longer running
 
-            self._runnable.remove(name)
+        if name is None:
+            for possible_name in self._graph.roots:
+                if possible_name not in self._running:
+                    name = possible_name
+                    break
+            else:  # all tasks block/running/completed/failed
+                return None
+        else:
+            if name not in self._graph.roots or name in self._running:
+                raise ValueError(name)
 
         self._running.add(name)
 
@@ -194,96 +125,62 @@ class Arbiter(object):
 
     def end_task(self, name, success=True):
         """
-        End a running task. Raises a ValueError if the task isn't
+        End a running task. Raises an exception if the task isn't
         running.
 
         name: The name of the task to complete.
         success: (optional, True) Whether the task successfully
             completed.
+
+        NOTE: An exception will be thrown if the solver is no longer
+        running
         """
-        if name in self._running:
-            self._running.remove(name)
-        else:  # This task can't be completed
-            raise ValueError(name)
+        if self._graph is None:
+            raise ValueError  # solver no longer running
+
+        self._running.remove(name)
 
         if success:
             self._completed.add(name)
-
-            # There may be tasks that are no longer blocked
-            now_runnable = set()
-
-            for task, dependencies in self._blocked.items():
-                if name in dependencies:
-                    dependencies.remove(name)
-
-                    if not dependencies:
-                        now_runnable.add(task)
-
-            for task in now_runnable:
-                del self._blocked[task]
-                self._runnable.add(task)
+            self._graph.remove_node(name, remove_children=False)
         else:
-            self._failed.add(name)
             self._cascade_failure(name)
 
     def _cascade_failure(self, name):
         """
-        Mark any descendents of a task as failed.
+        Mark a task (and any of it's decendants as failed)
 
         name: The name of the offending task.
         """
-        failures = {name}
-        remaining = list(self._blocked.items())
-        finished = False
+        if name in self._graph:
+            self._failed.update(
+                self._graph.remove_node(name, remove_children=True)
+            )
+        else:
+            self._failed.add(name)
 
-        while not finished:
-            finished = True
-            new_remaining = list()
-
-            for task, dependencies in remaining:
-                # TODO: Is intersection overkill? We don't actually care
-                # what the overlap is, just that it exists
-                if failures.intersection(dependencies):
-                    del self._blocked[task]
-                    self._failed.add(task)
-
-                    failures.add(task)
-                    finished = False
-                else:
-                    new_remaining.append((task, dependencies))
-
-            remaining = new_remaining
+    def remove_dead_tasks(self):
+        """
+        Remove any tasks that are dependent on non-existent tasks.
+        """
+        self._failed.update(self._graph.prune())
 
     def stop(self):
         """
         Stop the solver, pushing any unfinished tasks into failed.
-        Returns (set of successful tasks, set of failed tasks).
         """
-        self._failed = set(
-            chain(
-                self._failed, self._blocked, self._runnable, self._running
-            )
-        )
+        if self._graph:
+            self._running = frozenset()
+            self._failed.update(self._graph.nodes)
 
-        self._blocked = set()
-        self._runnable = set()
-        self._running = set()
-
-        return self._completed, self._failed
+            self._graph = None
 
     def __enter__(self):
         """
-        Enter a context manager. Presently, the context manager just
-        calls stop on exit, so there is nothing to do here.
-
-        Enter does return self so you can do:
-
-        with Arbiter(tasks=tasks) as arbiter:
-            # do stuff
-
-        I would recommend against it because you won't be able to check
-        completed/failure afterward.
+        Enter a context manager. On entering, remove_dead_tasks will be
+        called, and on exit, stop will be called.
         """
+        self.remove_dead_tasks()
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -291,7 +188,3 @@ class Arbiter(object):
         Exit the context manager, stopping any non-completed tasks.
         """
         self.stop()
-
-
-# Used by remove_dead_tasks
-StackItem = namedtuple('StackItem', ('task', 'visited', 'dependencies'))

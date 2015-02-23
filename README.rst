@@ -6,7 +6,7 @@ Arbiter
 .. image:: https://coveralls.io/repos/invenia/Arbiter/badge.png?branch=master
   :target: https://coveralls.io/r/invenia/Arbiter?branch=master
 
-Arbiter is a 2.7, 3.3+ compatible task-dependency solver. Given a set of
+Arbiter is a 2.6+, 3.3+ compatible task-dependency solver. Given a set of
 tasks and their dependencies, arbiter calculates what tasks are currently
 runnable::
 
