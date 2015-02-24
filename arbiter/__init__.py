@@ -1,13 +1,10 @@
 """
 Arbiter is a 2.6/3.3+ compatible task-dependency solver.
 """
-__all__ = ('Arbiter',)
-
-
-# from collections import namedtuple
-# from itertools import chain
-
 from arbiter.graph import DirectedGraph
+
+
+__all__ = ('Arbiter',)
 
 
 class Arbiter(object):

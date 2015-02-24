@@ -1,10 +1,10 @@
 """
 An implementation for a (possibly acyclic) directed graph.
 """
-__all__ = ('DirectedGraph',)
-
-
 from collections import namedtuple
+
+
+__all__ = ('DirectedGraph',)
 
 
 Node = namedtuple('Node', ('name', 'children', 'parents'))
@@ -51,8 +51,10 @@ class DirectedGraph(object):
             visited = set()
 
             for parent in parents:
-                if parent in self._nodes and self.is_ancestor(
-                        parent, name, visited=visited):
+                if parent in self._nodes:
+                    if self.is_ancestor(parent, name, visited=visited):
+                        raise ValueError(parent)
+                elif parent == name:
                     raise ValueError(parent)
 
         # Node safe to add
@@ -62,18 +64,24 @@ class DirectedGraph(object):
             self._roots.remove(name)
 
         if parents:
-            # Add stubs for any non-existent parent nodes
             for parent in parents:
-                if parent not in self._nodes:
-                    self._nodes[parent] = Node(
-                        name=parent,
-                        children=set((name,)),
-                        parents=frozenset(),
-                    )
-                    self._stubs.add(parent)
-                    self._roots.add(parent)
+                if parent == name:  # cycle
+                    node.children.add(name)
+                else:
+                    parent_node = self._nodes.get(parent)
+
+                    if parent_node:
+                        parent_node.children.add(name)
+                    else:  # add stub
+                        self._nodes[parent] = Node(
+                            name=parent,
+                            children=set((name,)),
+                            parents=frozenset(),
+                        )
+                        self._stubs.add(parent)
+                        self._roots.add(parent)
         else:
-            self._roots.add(node)
+            self._roots.add(name)
 
         self._nodes[name] = node
 
@@ -94,10 +102,15 @@ class DirectedGraph(object):
 
         while stack:
             current = stack.pop()
-            node = self._nodes[name]
+            node = self._nodes.pop(current)
 
             for parent_name in node.parents:
-                self._nodes[parent_name].children.remove(current)
+                parent_node = self._nodes[parent_name]
+
+                parent_node.children.remove(current)
+
+                if parent_name in self._stubs and not parent_node.children:
+                    stack.append(parent_name)
 
             if current in self._stubs:
                 self._stubs.remove(current)
@@ -108,12 +121,20 @@ class DirectedGraph(object):
             removed.add(current)
 
             if remove_children:
-                stack.extend(
-                    child for child in node.children if child not in removed
-                )
+                for child in node.children:
+                    child_node = self._nodes[child]
+
+                    child_node.parents.remove(current)
+
+                    stack.append(child)
             else:
                 for child in node.children:
-                    self._nodes[child].parents.remove()
+                    child_node = self._nodes[child]
+
+                    child_node.parents.remove(current)
+
+                    if not child_node.parents:
+                        self._roots.add(child)
 
         return removed
 
@@ -135,6 +156,8 @@ class DirectedGraph(object):
         """
         Get the set of children a node has.
 
+        node: The name of the node.
+
         An exception will be raised if the node doesn't exist.
         """
         return frozenset(self._nodes[node].children)
@@ -142,6 +165,8 @@ class DirectedGraph(object):
     def get_parents(self, node):
         """
         Get the set of parents a node has.
+
+        node: The name of the node.
 
         An exception will be raised if the node doesn't exist.
         """
@@ -156,16 +181,23 @@ class DirectedGraph(object):
         visited: (optional, None) If given, a set of nodes that have
             already been traversed. NOTE: The set will be updated with
             any new nodes that are visited.
+
+        NOTE: If node doesn't exist, the method will return False.
         """
         if visited is None:
             visited = set()
 
-        stack = [ancestor]
+        actual_node = self._nodes.get(node)
+
+        if actual_node is None:
+            return False
+
+        stack = list(actual_node.parents)
 
         while stack:
             current = stack.pop()
 
-            if current == node:
+            if current == ancestor:
                 return True
 
             if current not in visited:
@@ -182,19 +214,17 @@ class DirectedGraph(object):
         Remove any tasks that have stubs as ancestors (and the stubs
         themselves).
 
-        Returns the set of non-stub nodes which were removed.
+        Returns the set of nodes which were removed.
         """
         pruned = set()
 
         while self._stubs:
-            name = self._stubs.pop()
-            self._roots.remove(name)
-
-            for child in self._nodes.pop(name).children:
-                if child not in pruned:
-                    pruned.updated(
-                        self._remove_node(child, remove_children=True)
-                    )
+            pruned.update(
+                self.remove_node(
+                    next(iter(self._stubs)),  # get an arbitrary stub
+                    remove_children=True
+                )
+            )
 
         return pruned
 
@@ -203,3 +233,21 @@ class DirectedGraph(object):
         Check whether a node is in the graph
         """
         return node in self._nodes
+
+    def __eq__(self, other):
+        """
+        Equality checking
+        """
+        if not isinstance(other, DirectedGraph):
+            return NotImplemented
+
+        return self._nodes == other._nodes and self._stubs == other._stubs
+
+    def __ne__(self, other):
+        """
+        Inequality checking
+        """
+        if not isinstance(other, DirectedGraph):
+            return NotImplemented
+
+        return not (self == other)
