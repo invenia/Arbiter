@@ -61,7 +61,6 @@ class DirectedGraph(object):
 
         if is_stub:
             self._stubs.remove(name)
-            self._roots.remove(name)
 
         if parents:
             for parent in parents:
@@ -79,7 +78,6 @@ class DirectedGraph(object):
                             parents=frozenset(),
                         )
                         self._stubs.add(parent)
-                        self._roots.add(parent)
         else:
             self._roots.add(name)
 
@@ -114,7 +112,6 @@ class DirectedGraph(object):
 
             if current in self._stubs:
                 self._stubs.remove(current)
-                self._roots.remove(current)
             elif current in self._roots:
                 self._roots.remove(current)
 
@@ -219,11 +216,10 @@ class DirectedGraph(object):
         pruned = set()
 
         while self._stubs:
+            stub = next(iter(self._stubs))  # get an arbitrary stub
+
             pruned.update(
-                self.remove_node(
-                    next(iter(self._stubs)),  # get an arbitrary stub
-                    remove_children=True
-                )
+                self.remove_node(stub, remove_children=True) - set((stub,))
             )
 
         return pruned
