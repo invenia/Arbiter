@@ -58,6 +58,12 @@ class Scheduler(object):
         """
         return self._graph.roots - self._running
 
+    def is_finished(self):
+        """
+        Have all runnable tasks completed?
+        """
+        return not (self._graph.roots or self._running)
+
     def add_task(self, name, dependencies=None):
         """
         Add a task to the scheduler.
