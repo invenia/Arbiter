@@ -1,17 +1,17 @@
 """
-The dependency solver.
+The dependency scheduler.
 """
 from collections import Hashable
 
 from arbiter.graph import DirectedGraph
 
 
-__all__ = ('Solver',)
+__all__ = ('Scheduler',)
 
 
-class Solver(object):
+class Scheduler(object):
     """
-    A dependency solver.
+    A dependency scheduler.
     """
     def __init__(self, tasks=None, completed=None, failed=None):
         if completed is None:
@@ -52,7 +52,7 @@ class Solver(object):
 
     def add_task(self, name, dependencies=None):
         """
-        Add a task to the solver.
+        Add a task to the scheduler.
 
         name: The name of the task being added. The name must be unique,
             hashable, and cannot be None.
@@ -90,7 +90,7 @@ class Solver(object):
             task has been started).
 
         name: (optional, None) The task to start. If a name is given,
-            Solver will attempt to start the task (and raise an
+            Scheduler will attempt to start the task (and raise an
             exception if the task doesn't exist or isn't runnable). If
             no name is given, a task will be chosen arbitrarily
         """
