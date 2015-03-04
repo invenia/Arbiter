@@ -44,6 +44,14 @@ class Scheduler(object):
         """
         return frozenset(self._failed)
 
+    @property
+    def running(self):
+        """
+        A copy of the set of running tasks.
+        """
+        return frozenset(self._running)
+
+    @property
     def runnable(self):
         """
         Get the set of tasks that are currently runnable.

@@ -14,21 +14,24 @@ def test_empty():
 
     assert_equals(scheduler.completed, frozenset())
     assert_equals(scheduler.failed, frozenset())
-    assert_equals(scheduler.runnable(), frozenset())
+    assert_equals(scheduler.running, frozenset())
+    assert_equals(scheduler.runnable, frozenset())
     assert_true(scheduler.start_task() is None)
 
     scheduler.remove_unrunnable()
 
     assert_equals(scheduler.completed, frozenset())
     assert_equals(scheduler.failed, frozenset())
-    assert_equals(scheduler.runnable(), frozenset())
+    assert_equals(scheduler.running, frozenset())
+    assert_equals(scheduler.runnable, frozenset())
     assert_true(scheduler.start_task() is None)
 
     scheduler.fail_remaining()
 
     assert_equals(scheduler.completed, frozenset())
     assert_equals(scheduler.failed, frozenset())
-    assert_equals(scheduler.runnable(), frozenset())
+    assert_equals(scheduler.running, frozenset())
+    assert_equals(scheduler.runnable, frozenset())
     assert_true(scheduler.start_task() is None)
 
 
@@ -45,21 +48,24 @@ def test_add_task():
 
     assert_equals(scheduler.completed, frozenset())
     assert_equals(scheduler.failed, frozenset())
-    assert_equals(scheduler.runnable(), frozenset(('foo',)))
+    assert_equals(scheduler.running, frozenset())
+    assert_equals(scheduler.runnable, frozenset(('foo',)))
 
     # 1 dependency
     scheduler.add_task('bar', ('foo',))
 
     assert_equals(scheduler.completed, frozenset())
     assert_equals(scheduler.failed, frozenset())
-    assert_equals(scheduler.runnable(), frozenset(('foo',)))
+    assert_equals(scheduler.running, frozenset())
+    assert_equals(scheduler.runnable, frozenset(('foo',)))
 
     # non-added dependency
     scheduler.add_task('ipsum', ('lorem',))
 
     assert_equals(scheduler.completed, frozenset())
     assert_equals(scheduler.failed, frozenset())
-    assert_equals(scheduler.runnable(), frozenset(('foo',)))
+    assert_equals(scheduler.running, frozenset())
+    assert_equals(scheduler.runnable, frozenset(('foo',)))
 
     # invalid tasks
 
@@ -69,28 +75,32 @@ def test_add_task():
 
     assert_equals(scheduler.completed, frozenset())
     assert_equals(scheduler.failed, frozenset())
-    assert_equals(scheduler.runnable(), frozenset(('foo',)))
+    assert_equals(scheduler.running, frozenset())
+    assert_equals(scheduler.runnable, frozenset(('foo',)))
 
     # invalid dependency
     scheduler.add_task('failed', (None,))
 
     assert_equals(scheduler.completed, frozenset())
     assert_equals(scheduler.failed, frozenset(('failed',)))
-    assert_equals(scheduler.runnable(), frozenset(('foo',)))
+    assert_equals(scheduler.running, frozenset())
+    assert_equals(scheduler.runnable, frozenset(('foo',)))
 
     # circular dependencies
     scheduler.add_task('ouroboros', ('ouroboros',))
 
     assert_equals(scheduler.completed, frozenset())
     assert_equals(scheduler.failed, frozenset(('failed', 'ouroboros')))
-    assert_equals(scheduler.runnable(), frozenset(('foo',)))
+    assert_equals(scheduler.running, frozenset())
+    assert_equals(scheduler.runnable, frozenset(('foo',)))
 
     # dependency made circular
     scheduler.add_task('tick', ('tock',))
 
     assert_equals(scheduler.completed, frozenset())
     assert_equals(scheduler.failed, frozenset(('failed', 'ouroboros')))
-    assert_equals(scheduler.runnable(), frozenset(('foo',)))
+    assert_equals(scheduler.running, frozenset())
+    assert_equals(scheduler.runnable, frozenset(('foo',)))
 
     scheduler.add_task('tock', ('tick',))
 
@@ -98,7 +108,8 @@ def test_add_task():
     assert_equals(
         scheduler.failed, frozenset(('failed', 'ouroboros', 'tick', 'tock'))
     )
-    assert_equals(scheduler.runnable(), frozenset(('foo',)))
+    assert_equals(scheduler.running, frozenset())
+    assert_equals(scheduler.runnable, frozenset(('foo',)))
 
     at_init = Scheduler(
         tasks={
@@ -115,7 +126,7 @@ def test_add_task():
     assert_equals(
         at_init.failed, frozenset(('ouroboros', 'tick', 'tock'))
     )
-    assert_equals(at_init.runnable(), frozenset(('foo',)))
+    assert_equals(at_init.runnable, frozenset(('foo',)))
 
 
 def test_remove_unrunnable():
@@ -138,13 +149,15 @@ def test_remove_unrunnable():
 
     assert_equals(scheduler.completed, frozenset())
     assert_equals(scheduler.failed, frozenset())
-    assert_equals(scheduler.runnable(), frozenset(('foo', 'stand')))
+    assert_equals(scheduler.running, frozenset())
+    assert_equals(scheduler.runnable, frozenset(('foo', 'stand')))
 
     scheduler.remove_unrunnable()
 
     assert_equals(scheduler.completed, frozenset())
     assert_equals(scheduler.failed, frozenset(('ipsum', 'dolor', 'sit')))
-    assert_equals(scheduler.runnable(), frozenset(('foo', 'stand')))
+    assert_equals(scheduler.running, frozenset())
+    assert_equals(scheduler.runnable, frozenset(('foo', 'stand')))
 
 
 def test_start_task():
@@ -166,14 +179,16 @@ def test_start_task():
 
     assert_equals(scheduler.completed, frozenset())
     assert_equals(scheduler.failed, frozenset())
-    assert_equals(scheduler.runnable(), frozenset(('foo', 'node')))
+    assert_equals(scheduler.running, frozenset())
+    assert_equals(scheduler.runnable, frozenset(('foo', 'node')))
 
     # start a specific task
     assert_equals(scheduler.start_task('node'), 'node')
 
     assert_equals(scheduler.completed, frozenset())
     assert_equals(scheduler.failed, frozenset())
-    assert_equals(scheduler.runnable(), frozenset(('foo',)))
+    assert_equals(scheduler.running, frozenset(('node',)))
+    assert_equals(scheduler.runnable, frozenset(('foo',)))
 
     # start tasks invalidly
     assert_raises(ValueError, scheduler.start_task, 'node')
@@ -182,40 +197,49 @@ def test_start_task():
 
     assert_equals(scheduler.completed, frozenset())
     assert_equals(scheduler.failed, frozenset())
-    assert_equals(scheduler.runnable(), frozenset(('foo',)))
+    assert_equals(scheduler.running, frozenset(('node',)))
+    assert_equals(scheduler.runnable, frozenset(('foo',)))
 
     # is node still stoppable
     scheduler.end_task('node')
 
     assert_equals(scheduler.completed, frozenset(('node',)))
     assert_equals(scheduler.failed, frozenset())
-    assert_equals(scheduler.runnable(), frozenset(('foo',)))
+    assert_equals(scheduler.running, frozenset())
+    assert_equals(scheduler.runnable, frozenset(('foo',)))
 
     # start an arbitrary task
     assert_equals(scheduler.start_task(), 'foo')
 
     assert_equals(scheduler.completed, frozenset(('node',)))
     assert_equals(scheduler.failed, frozenset())
-    assert_equals(scheduler.runnable(), frozenset())
+    assert_equals(scheduler.running, frozenset(('foo',)))
+    assert_equals(scheduler.runnable, frozenset())
 
     # no startable tasks
     assert_true(scheduler.start_task() is None)
 
     assert_equals(scheduler.completed, frozenset(('node',)))
     assert_equals(scheduler.failed, frozenset())
-    assert_equals(scheduler.runnable(), frozenset())
+    assert_equals(scheduler.running, frozenset(('foo',)))
+    assert_equals(scheduler.runnable, frozenset())
 
     # start an arbitrary task
     scheduler.end_task('foo')
 
-    assert_true(scheduler.start_task() in frozenset(('bar', 'fighters')))
+    started = scheduler.start_task()
+
+    assert_true(started in frozenset(('bar', 'fighters')))
 
     assert_equals(scheduler.completed, frozenset(('node', 'foo')))
     assert_equals(scheduler.failed, frozenset())
-    assert_true(
-        scheduler.runnable(),
-        frozenset((frozenset(('boo',)), frozenset(('fighters',))))
-    )
+
+    if started == 'bar':
+        assert_equals(scheduler.running, frozenset(('bar',)))
+        assert_equals(scheduler.runnable, frozenset(('fighters',)))
+    else:
+        assert_equals(scheduler.running, frozenset(('fighters',)))
+        assert_equals(scheduler.runnable, frozenset(('bar',)))
 
 
 def test_end_task():
@@ -237,7 +261,8 @@ def test_end_task():
 
     assert_equals(scheduler.completed, frozenset())
     assert_equals(scheduler.failed, frozenset())
-    assert_equals(scheduler.runnable(), frozenset(('foo',)))
+    assert_equals(scheduler.running, frozenset())
+    assert_equals(scheduler.runnable, frozenset(('foo',)))
 
     # end a task
     scheduler.start_task('foo')
@@ -245,7 +270,8 @@ def test_end_task():
 
     assert_equals(scheduler.completed, frozenset(('foo',)))
     assert_equals(scheduler.failed, frozenset())
-    assert_equals(scheduler.runnable(), frozenset(('bar', 'fighters')))
+    assert_equals(scheduler.running, frozenset())
+    assert_equals(scheduler.runnable, frozenset(('bar', 'fighters')))
 
     # invalid ends
     assert_raises(KeyError, scheduler.end_task, 'foo')
@@ -254,7 +280,8 @@ def test_end_task():
 
     assert_equals(scheduler.completed, frozenset(('foo',)))
     assert_equals(scheduler.failed, frozenset())
-    assert_equals(scheduler.runnable(), frozenset(('bar', 'fighters')))
+    assert_equals(scheduler.running, frozenset())
+    assert_equals(scheduler.runnable, frozenset(('bar', 'fighters')))
 
     # fail a task
     scheduler.start_task('bar')
@@ -262,7 +289,8 @@ def test_end_task():
 
     assert_equals(scheduler.completed, frozenset(('foo',)))
     assert_equals(scheduler.failed, frozenset(('bar', 'baz', 'qux', 'bell')))
-    assert_equals(scheduler.runnable(), frozenset(('fighters',)))
+    assert_equals(scheduler.running, frozenset())
+    assert_equals(scheduler.runnable, frozenset(('fighters',)))
 
 
 def test_fail_remaining():
@@ -294,7 +322,8 @@ def test_fail_remaining():
         scheduler.failed,
         frozenset(('bar', 'baz', 'qux', 'bell', 'fighters', 'node'))
     )
-    assert_equals(scheduler.runnable(), frozenset())
+    assert_equals(scheduler.running, frozenset())
+    assert_equals(scheduler.runnable, frozenset())
 
     # did that break adding tasks?
     scheduler.add_task('restart')
@@ -304,7 +333,8 @@ def test_fail_remaining():
         scheduler.failed,
         frozenset(('bar', 'baz', 'qux', 'bell', 'fighters', 'node'))
     )
-    assert_equals(scheduler.runnable(), frozenset(('restart',)))
+    assert_equals(scheduler.running, frozenset())
+    assert_equals(scheduler.runnable, frozenset(('restart',)))
 
 
 def test_context_manager():
