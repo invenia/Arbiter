@@ -6,101 +6,101 @@ from nose.tools import assert_equals, assert_true, assert_raises
 
 def test_empty():
     """
-    Create an empty Arbiter.
+    Create an empty Solver.
     """
-    from arbiter.solver import Arbiter
+    from arbiter.solver import Solver
 
-    arbiter = Arbiter()
+    solver = Solver()
 
-    assert_equals(arbiter.completed, frozenset())
-    assert_equals(arbiter.failed, frozenset())
-    assert_equals(arbiter.runnable(), frozenset())
-    assert_true(arbiter.start_task() is None)
+    assert_equals(solver.completed, frozenset())
+    assert_equals(solver.failed, frozenset())
+    assert_equals(solver.runnable(), frozenset())
+    assert_true(solver.start_task() is None)
 
-    arbiter.remove_unrunnable()
+    solver.remove_unrunnable()
 
-    assert_equals(arbiter.completed, frozenset())
-    assert_equals(arbiter.failed, frozenset())
-    assert_equals(arbiter.runnable(), frozenset())
-    assert_true(arbiter.start_task() is None)
+    assert_equals(solver.completed, frozenset())
+    assert_equals(solver.failed, frozenset())
+    assert_equals(solver.runnable(), frozenset())
+    assert_true(solver.start_task() is None)
 
-    arbiter.fail_remaining()
+    solver.fail_remaining()
 
-    assert_equals(arbiter.completed, frozenset())
-    assert_equals(arbiter.failed, frozenset())
-    assert_equals(arbiter.runnable(), frozenset())
-    assert_true(arbiter.start_task() is None)
+    assert_equals(solver.completed, frozenset())
+    assert_equals(solver.failed, frozenset())
+    assert_equals(solver.runnable(), frozenset())
+    assert_true(solver.start_task() is None)
 
 
 def test_add_task():
     """
-    Add a task to Arbiter.
+    Add a task to Solver.
     """
-    from arbiter.solver import Arbiter
+    from arbiter.solver import Solver
 
-    arbiter = Arbiter()
+    solver = Solver()
 
     # no dependencies
-    arbiter.add_task('foo')
+    solver.add_task('foo')
 
-    assert_equals(arbiter.completed, frozenset())
-    assert_equals(arbiter.failed, frozenset())
-    assert_equals(arbiter.runnable(), frozenset(('foo',)))
+    assert_equals(solver.completed, frozenset())
+    assert_equals(solver.failed, frozenset())
+    assert_equals(solver.runnable(), frozenset(('foo',)))
 
     # 1 dependency
-    arbiter.add_task('bar', ('foo',))
+    solver.add_task('bar', ('foo',))
 
-    assert_equals(arbiter.completed, frozenset())
-    assert_equals(arbiter.failed, frozenset())
-    assert_equals(arbiter.runnable(), frozenset(('foo',)))
+    assert_equals(solver.completed, frozenset())
+    assert_equals(solver.failed, frozenset())
+    assert_equals(solver.runnable(), frozenset(('foo',)))
 
     # non-added dependency
-    arbiter.add_task('ipsum', ('lorem',))
+    solver.add_task('ipsum', ('lorem',))
 
-    assert_equals(arbiter.completed, frozenset())
-    assert_equals(arbiter.failed, frozenset())
-    assert_equals(arbiter.runnable(), frozenset(('foo',)))
+    assert_equals(solver.completed, frozenset())
+    assert_equals(solver.failed, frozenset())
+    assert_equals(solver.runnable(), frozenset(('foo',)))
 
     # invalid tasks
 
     # invalid name
-    assert_raises(ValueError, arbiter.add_task, None)
-    assert_raises(ValueError, arbiter.add_task, set())
+    assert_raises(ValueError, solver.add_task, None)
+    assert_raises(ValueError, solver.add_task, set())
 
-    assert_equals(arbiter.completed, frozenset())
-    assert_equals(arbiter.failed, frozenset())
-    assert_equals(arbiter.runnable(), frozenset(('foo',)))
+    assert_equals(solver.completed, frozenset())
+    assert_equals(solver.failed, frozenset())
+    assert_equals(solver.runnable(), frozenset(('foo',)))
 
     # invalid dependency
-    arbiter.add_task('failed', (None,))
+    solver.add_task('failed', (None,))
 
-    assert_equals(arbiter.completed, frozenset())
-    assert_equals(arbiter.failed, frozenset(('failed',)))
-    assert_equals(arbiter.runnable(), frozenset(('foo',)))
+    assert_equals(solver.completed, frozenset())
+    assert_equals(solver.failed, frozenset(('failed',)))
+    assert_equals(solver.runnable(), frozenset(('foo',)))
 
     # circular dependencies
-    arbiter.add_task('ouroboros', ('ouroboros',))
+    solver.add_task('ouroboros', ('ouroboros',))
 
-    assert_equals(arbiter.completed, frozenset())
-    assert_equals(arbiter.failed, frozenset(('failed', 'ouroboros')))
-    assert_equals(arbiter.runnable(), frozenset(('foo',)))
+    assert_equals(solver.completed, frozenset())
+    assert_equals(solver.failed, frozenset(('failed', 'ouroboros')))
+    assert_equals(solver.runnable(), frozenset(('foo',)))
 
     # dependency made circular
-    arbiter.add_task('tick', ('tock',))
+    solver.add_task('tick', ('tock',))
 
-    assert_equals(arbiter.completed, frozenset())
-    assert_equals(arbiter.failed, frozenset(('failed', 'ouroboros')))
-    assert_equals(arbiter.runnable(), frozenset(('foo',)))
+    assert_equals(solver.completed, frozenset())
+    assert_equals(solver.failed, frozenset(('failed', 'ouroboros')))
+    assert_equals(solver.runnable(), frozenset(('foo',)))
 
-    arbiter.add_task('tock', ('tick',))
+    solver.add_task('tock', ('tick',))
 
-    assert_equals(arbiter.completed, frozenset())
+    assert_equals(solver.completed, frozenset())
     assert_equals(
-        arbiter.failed, frozenset(('failed', 'ouroboros', 'tick', 'tock'))
+        solver.failed, frozenset(('failed', 'ouroboros', 'tick', 'tock'))
     )
-    assert_equals(arbiter.runnable(), frozenset(('foo',)))
+    assert_equals(solver.runnable(), frozenset(('foo',)))
 
-    at_init = Arbiter(
+    at_init = Solver(
         tasks={
             'foo': (),
             'bar': ('foo',),
@@ -120,11 +120,11 @@ def test_add_task():
 
 def test_remove_unrunnable():
     """
-    remove unrunnable Arbiter tasks
+    remove unrunnable Solver tasks
     """
-    from arbiter.solver import Arbiter
+    from arbiter.solver import Solver
 
-    arbiter = Arbiter(
+    solver = Solver(
         tasks={
             'foo': (),
             'bar': ('foo',),
@@ -136,24 +136,24 @@ def test_remove_unrunnable():
         }
     )
 
-    assert_equals(arbiter.completed, frozenset())
-    assert_equals(arbiter.failed, frozenset())
-    assert_equals(arbiter.runnable(), frozenset(('foo', 'stand')))
+    assert_equals(solver.completed, frozenset())
+    assert_equals(solver.failed, frozenset())
+    assert_equals(solver.runnable(), frozenset(('foo', 'stand')))
 
-    arbiter.remove_unrunnable()
+    solver.remove_unrunnable()
 
-    assert_equals(arbiter.completed, frozenset())
-    assert_equals(arbiter.failed, frozenset(('ipsum', 'dolor', 'sit')))
-    assert_equals(arbiter.runnable(), frozenset(('foo', 'stand')))
+    assert_equals(solver.completed, frozenset())
+    assert_equals(solver.failed, frozenset(('ipsum', 'dolor', 'sit')))
+    assert_equals(solver.runnable(), frozenset(('foo', 'stand')))
 
 
 def test_start_task():
     """
     Start a task
     """
-    from arbiter.solver import Arbiter
+    from arbiter.solver import Solver
 
-    arbiter = Arbiter(
+    solver = Solver(
         tasks={
             'foo': (),
             'fighters': ('foo',),
@@ -164,56 +164,56 @@ def test_start_task():
         }
     )
 
-    assert_equals(arbiter.completed, frozenset())
-    assert_equals(arbiter.failed, frozenset())
-    assert_equals(arbiter.runnable(), frozenset(('foo', 'node')))
+    assert_equals(solver.completed, frozenset())
+    assert_equals(solver.failed, frozenset())
+    assert_equals(solver.runnable(), frozenset(('foo', 'node')))
 
     # start a specific task
-    assert_equals(arbiter.start_task('node'), 'node')
+    assert_equals(solver.start_task('node'), 'node')
 
-    assert_equals(arbiter.completed, frozenset())
-    assert_equals(arbiter.failed, frozenset())
-    assert_equals(arbiter.runnable(), frozenset(('foo',)))
+    assert_equals(solver.completed, frozenset())
+    assert_equals(solver.failed, frozenset())
+    assert_equals(solver.runnable(), frozenset(('foo',)))
 
     # start tasks invalidly
-    assert_raises(ValueError, arbiter.start_task, 'node')
-    assert_raises(ValueError, arbiter.start_task, 'bar')
-    assert_raises(ValueError, arbiter.start_task, 'fake')
+    assert_raises(ValueError, solver.start_task, 'node')
+    assert_raises(ValueError, solver.start_task, 'bar')
+    assert_raises(ValueError, solver.start_task, 'fake')
 
-    assert_equals(arbiter.completed, frozenset())
-    assert_equals(arbiter.failed, frozenset())
-    assert_equals(arbiter.runnable(), frozenset(('foo',)))
+    assert_equals(solver.completed, frozenset())
+    assert_equals(solver.failed, frozenset())
+    assert_equals(solver.runnable(), frozenset(('foo',)))
 
     # is node still stoppable
-    arbiter.end_task('node')
+    solver.end_task('node')
 
-    assert_equals(arbiter.completed, frozenset(('node',)))
-    assert_equals(arbiter.failed, frozenset())
-    assert_equals(arbiter.runnable(), frozenset(('foo',)))
+    assert_equals(solver.completed, frozenset(('node',)))
+    assert_equals(solver.failed, frozenset())
+    assert_equals(solver.runnable(), frozenset(('foo',)))
 
     # start an arbitrary task
-    assert_equals(arbiter.start_task(), 'foo')
+    assert_equals(solver.start_task(), 'foo')
 
-    assert_equals(arbiter.completed, frozenset(('node',)))
-    assert_equals(arbiter.failed, frozenset())
-    assert_equals(arbiter.runnable(), frozenset())
+    assert_equals(solver.completed, frozenset(('node',)))
+    assert_equals(solver.failed, frozenset())
+    assert_equals(solver.runnable(), frozenset())
 
     # no startable tasks
-    assert_true(arbiter.start_task() is None)
+    assert_true(solver.start_task() is None)
 
-    assert_equals(arbiter.completed, frozenset(('node',)))
-    assert_equals(arbiter.failed, frozenset())
-    assert_equals(arbiter.runnable(), frozenset())
+    assert_equals(solver.completed, frozenset(('node',)))
+    assert_equals(solver.failed, frozenset())
+    assert_equals(solver.runnable(), frozenset())
 
     # start an arbitrary task
-    arbiter.end_task('foo')
+    solver.end_task('foo')
 
-    assert_true(arbiter.start_task() in frozenset(('bar', 'fighters')))
+    assert_true(solver.start_task() in frozenset(('bar', 'fighters')))
 
-    assert_equals(arbiter.completed, frozenset(('node', 'foo')))
-    assert_equals(arbiter.failed, frozenset())
+    assert_equals(solver.completed, frozenset(('node', 'foo')))
+    assert_equals(solver.failed, frozenset())
     assert_true(
-        arbiter.runnable(),
+        solver.runnable(),
         frozenset((frozenset(('boo',)), frozenset(('fighters',))))
     )
 
@@ -222,9 +222,9 @@ def test_end_task():
     """
     End a task
     """
-    from arbiter.solver import Arbiter
+    from arbiter.solver import Solver
 
-    arbiter = Arbiter(
+    solver = Solver(
         tasks={
             'foo': (),
             'fighters': ('foo',),
@@ -235,43 +235,43 @@ def test_end_task():
         }
     )
 
-    assert_equals(arbiter.completed, frozenset())
-    assert_equals(arbiter.failed, frozenset())
-    assert_equals(arbiter.runnable(), frozenset(('foo',)))
+    assert_equals(solver.completed, frozenset())
+    assert_equals(solver.failed, frozenset())
+    assert_equals(solver.runnable(), frozenset(('foo',)))
 
     # end a task
-    arbiter.start_task('foo')
-    arbiter.end_task('foo')
+    solver.start_task('foo')
+    solver.end_task('foo')
 
-    assert_equals(arbiter.completed, frozenset(('foo',)))
-    assert_equals(arbiter.failed, frozenset())
-    assert_equals(arbiter.runnable(), frozenset(('bar', 'fighters')))
+    assert_equals(solver.completed, frozenset(('foo',)))
+    assert_equals(solver.failed, frozenset())
+    assert_equals(solver.runnable(), frozenset(('bar', 'fighters')))
 
     # invalid ends
-    assert_raises(KeyError, arbiter.end_task, 'foo')
-    assert_raises(KeyError, arbiter.end_task, 'bar')
-    assert_raises(KeyError, arbiter.end_task, 'baz')
+    assert_raises(KeyError, solver.end_task, 'foo')
+    assert_raises(KeyError, solver.end_task, 'bar')
+    assert_raises(KeyError, solver.end_task, 'baz')
 
-    assert_equals(arbiter.completed, frozenset(('foo',)))
-    assert_equals(arbiter.failed, frozenset())
-    assert_equals(arbiter.runnable(), frozenset(('bar', 'fighters')))
+    assert_equals(solver.completed, frozenset(('foo',)))
+    assert_equals(solver.failed, frozenset())
+    assert_equals(solver.runnable(), frozenset(('bar', 'fighters')))
 
     # fail a task
-    arbiter.start_task('bar')
-    arbiter.end_task('bar', False)
+    solver.start_task('bar')
+    solver.end_task('bar', False)
 
-    assert_equals(arbiter.completed, frozenset(('foo',)))
-    assert_equals(arbiter.failed, frozenset(('bar', 'baz', 'qux', 'bell')))
-    assert_equals(arbiter.runnable(), frozenset(('fighters',)))
+    assert_equals(solver.completed, frozenset(('foo',)))
+    assert_equals(solver.failed, frozenset(('bar', 'baz', 'qux', 'bell')))
+    assert_equals(solver.runnable(), frozenset(('fighters',)))
 
 
 def test_fail_remaining():
     """
-    Stop the arbiter
+    Stop the solver
     """
-    from arbiter.solver import Arbiter
+    from arbiter.solver import Solver
 
-    arbiter = Arbiter(
+    solver = Solver(
         tasks={
             'foo': (),
             'fighters': ('foo',),
@@ -283,35 +283,35 @@ def test_fail_remaining():
         }
     )
 
-    arbiter.start_task('foo')
-    arbiter.end_task('foo')
-    arbiter.start_task('bar')
+    solver.start_task('foo')
+    solver.end_task('foo')
+    solver.start_task('bar')
 
-    arbiter.fail_remaining()
+    solver.fail_remaining()
 
-    assert_equals(arbiter.completed, frozenset(('foo',)))
+    assert_equals(solver.completed, frozenset(('foo',)))
     assert_equals(
-        arbiter.failed,
+        solver.failed,
         frozenset(('bar', 'baz', 'qux', 'bell', 'fighters', 'node'))
     )
-    assert_equals(arbiter.runnable(), frozenset())
+    assert_equals(solver.runnable(), frozenset())
 
     # did that break adding tasks?
-    arbiter.add_task('restart')
+    solver.add_task('restart')
 
-    assert_equals(arbiter.completed, frozenset(('foo',)))
+    assert_equals(solver.completed, frozenset(('foo',)))
     assert_equals(
-        arbiter.failed,
+        solver.failed,
         frozenset(('bar', 'baz', 'qux', 'bell', 'fighters', 'node'))
     )
-    assert_equals(arbiter.runnable(), frozenset(('restart',)))
+    assert_equals(solver.runnable(), frozenset(('restart',)))
 
 
 def test_context_manager():
     """
-    use an Arbiter in the context manager
+    use an Solver in the context manager
     """
-    from arbiter.solver import Arbiter
+    from arbiter.solver import Solver
 
     completed = set()
     failed = set()
@@ -326,23 +326,23 @@ def test_context_manager():
         'failed': ('fake',),
     }
 
-    with Arbiter(tasks=tasks, completed=completed, failed=failed) as arbiter:
+    with Solver(tasks=tasks, completed=completed, failed=failed) as solver:
         assert_equals(completed, frozenset())
         assert_equals(failed, frozenset(('failed',)))
 
-        arbiter.start_task('foo')
-        arbiter.end_task('foo')
+        solver.start_task('foo')
+        solver.end_task('foo')
 
         assert_equals(completed, frozenset(('foo',)))
         assert_equals(failed, frozenset(('failed',)))
 
-        arbiter.start_task('lorem')
-        arbiter.end_task('lorem', False)
+        solver.start_task('lorem')
+        solver.end_task('lorem', False)
 
         assert_equals(completed, frozenset(('foo',)))
         assert_equals(failed, frozenset(('failed', 'lorem', 'ipsum')))
 
-        arbiter.start_task('bar')
+        solver.start_task('bar')
 
     assert_equals(completed, frozenset(('foo',)))
     assert_equals(

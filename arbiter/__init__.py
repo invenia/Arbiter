@@ -1,5 +1,3 @@
 """
-Arbiter is a task-dependency solver.
+Arbiter is a dependency-solving task runner.
 """
-# make it possible to from arbiter import Arbiter
-from arbiter.solver import Arbiter  # noqa

@@ -1,17 +1,17 @@
 """
-The actual solver
+The dependency solver.
 """
 from collections import Hashable
 
 from arbiter.graph import DirectedGraph
 
 
-__all__ = ('Arbiter',)
+__all__ = ('Solver',)
 
 
-class Arbiter(object):
+class Solver(object):
     """
-    A task-dependency solver.
+    A dependency solver.
     """
     def __init__(self, tasks=None, completed=None, failed=None):
         if completed is None:
@@ -90,7 +90,7 @@ class Arbiter(object):
             task has been started).
 
         name: (optional, None) The task to start. If a name is given,
-            Arbiter will attempt to start the task (and raise an
+            Solver will attempt to start the task (and raise an
             exception if the task doesn't exist or isn't runnable). If
             no name is given, a task will be chosen arbitrarily
         """
