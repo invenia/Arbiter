@@ -77,11 +77,14 @@ class Scheduler(object):
         if not self._valid_name(name):
             raise ValueError(name)
 
+        if dependencies is None:
+            dependencies = ()
+
         self._tasks.add(name)
 
         incomplete_dependencies = set()
 
-        for dependency in (dependencies or ()):
+        for dependency in dependencies:
             if not self._valid_name(dependency) or dependency in self._failed:
                 # there may already be tasks dependent on this one.
                 self._cascade_failure(name)
@@ -154,12 +157,6 @@ class Scheduler(object):
         self._graph = DirectedGraph(acyclic=True)
         self._running = set()
 
-    def _valid_name(self, name):
-        """
-        Check whether a name is valid as a task name.
-        """
-        return name is not None and isinstance(name, Hashable)
-
     def _cascade_failure(self, name):
         """
         Mark a task (and anything that depends on it) as failed.
@@ -188,3 +185,10 @@ class Scheduler(object):
         non-completed tasks.
         """
         self.fail_remaining()
+
+    @classmethod
+    def _valid_name(cls, name):
+        """
+        Check whether a name is valid as a task name.
+        """
+        return name is not None and isinstance(name, Hashable)
