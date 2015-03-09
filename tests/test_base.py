@@ -20,18 +20,19 @@ def test_no_dependencies():
     """
     run dependency-less tasks
     """
-    from arbiter.base import Arbiter, Task
+    from arbiter.base import Arbiter
+    from arbiter.task import create_task
 
     executed_tasks = set()
 
-    def make_task(name, succeed=True):
+    def make_task(name, dependencies=(), succeed=True):
         """
         Make a task
         """
-        return Task(
+        return create_task(
             name=name,
             function=lambda: executed_tasks.add(name) or succeed,
-            dependencies=(),
+            dependencies=dependencies,
         )
 
     results = Arbiter(
@@ -39,7 +40,7 @@ def test_no_dependencies():
             make_task('foo'),
             make_task('bar'),
             make_task('baz'),
-            make_task('fail', False)
+            make_task('fail', succeed=False)
         )
     ).run()
 
@@ -52,7 +53,8 @@ def test_chain():
     """
     run a dependency chain
     """
-    from arbiter.base import Arbiter, Task
+    from arbiter.base import Arbiter
+    from arbiter.task import create_task
 
     executed_tasks = set()
 
@@ -60,7 +62,7 @@ def test_chain():
         """
         Make a task
         """
-        return Task(
+        return create_task(
             name=name,
             function=lambda: executed_tasks.add(name) or succeed,
             dependencies=dependencies,
@@ -70,7 +72,7 @@ def test_chain():
         (
             make_task('foo'),
             make_task('bar', ('foo',)),
-            make_task('baz', ('bar',), False),
+            make_task('baz', ('bar',), succeed=False),
             make_task('qux', ('baz',)),
         )
     ).run()
@@ -84,7 +86,8 @@ def test_tree():
     """
     run a dependency tree
     """
-    from arbiter.base import Arbiter, Task
+    from arbiter.base import Arbiter
+    from arbiter.task import create_task
 
     executed_tasks = set()
 
@@ -92,7 +95,7 @@ def test_tree():
         """
         Make a task
         """
-        return Task(
+        return create_task(
             name=name,
             function=lambda: executed_tasks.add(name) or succeed,
             dependencies=dependencies,

@@ -6,10 +6,6 @@ from collections import namedtuple
 from arbiter.scheduler import Scheduler
 
 
-Task = namedtuple(
-    'Task',
-    ('name', 'function', 'dependencies'),
-)
 Result = namedtuple('Result', ('completed', 'failed'))
 
 
@@ -64,68 +60,3 @@ class Arbiter(object):
         Wait until tasks complete
         """
         pass
-
-
-# @six.add_metaclass(ABCMeta)
-# class BaseRunner(object):
-#     """
-#     The base task runner.
-#     """
-#     def __init__(self, retries=0, delay=None):
-#         if delay is None:
-#             delay = timedelta()
-
-#         self._default_retries = retries
-#         self._default_delay = delay
-
-#         self._tasks = {}
-
-#     def add_task(self, name, function, dependencies=None,
-#                  retries=None, delay=None):
-#         """
-#         Add a task to the runner.
-
-#         name: The name of the task.
-#         function: The actual task. The function should take no
-#             arguments, and should return a False-y value if it fails
-#         dependencies: (optional, None) The names of any tasks this task
-#             depends on.
-#         retries: (optional, None) The number of retries that should be
-#             attempted should the task fail. If not given, the runner's
-#             default number of retries should be used.
-#         delay: (optional, None) A timedelta representing the delay
-#             between a task failing, and a retry occurring. If not given,
-#             the runner's default delay will be used.
-#         """
-#         if dependencies is None:
-#             dependencies = ()
-
-#         if retries is None:
-#             retries = self._default_retries
-
-#         if delay is None:
-#             delay = self._default_delay
-
-#         self._tasks[name] = Task(function, dependencies, retries, delay)
-
-#     def get_task(self, name):
-#         """
-#         Get a task.
-
-#         name: The name of the task.
-#         """
-#         return self._tasks.get(name)
-
-#     def run_tasks(self):
-#         """
-#         Run the
-#         """
-
-
-# class Runner(object):
-#     """
-#     Base task runner. Runs tasks one-at-a-time, using Arbiter to resolve
-#     dependencies
-#     """
-#     def __init__(self):
-#         self._arbiter = Arbiter()
