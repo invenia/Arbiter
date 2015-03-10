@@ -1,3 +1,5 @@
+futures
+
 coverage
 flake8
 nose

@@ -16,6 +16,29 @@ Arbiter is available on PyPI. To install::
 
     $ pip install arbiter
 
+Usage
+=====
+
+To create a task::
+
+    from arbiter import create_task
+
+    task = create_task(name, function)
+
+    # A task with dependencies
+    dependent task = create_task(name, function, (dependency, dependency2))
+
+To run tasks::
+
+    from arbiter.sync import run_tasks
+
+    results = run_tasks(tasks)
+
+Tasks can be run asynchronously::
+
+    from arbiter.async import run_tasks
+
+    results = run_tasks(tasks, max_workers=5)
 
 License
 =======

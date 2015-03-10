@@ -20,6 +20,10 @@ setup(
         "arbiter",
     ),
 
+    install_requires=(
+        'futures',
+    ),
+
     tests_require=(
         'coverage',
         'nose',

@@ -1,62 +1,44 @@
 """
-Actual task runners using Arbiter for dependency-solving
+The base task runner.
 """
 from collections import namedtuple
 
 from arbiter.scheduler import Scheduler
 
 
-Result = namedtuple('Result', ('completed', 'failed'))
+Results = namedtuple('Results', ('completed', 'failed'))
+TaskResult = namedtuple('TaskResult', ('name', 'successful'))
 
 
-class Arbiter(object):
+def task_loop(tasks, execute, wait=None):
     """
-    A serial task-runner that handles dependencies
+    The inner task loop for a task runner.
+
+    execute: A function that runs a task. It should take a task as its
+        sole argument, and may optionally return a TaskResult.
+    wait: (optional, None) A function to run whenever there aren't any
+        runnable tasks (but there are still tasks listed as running).
+        If given, this function should take no arguments, and should
+        return an iterable of TaskResults.
     """
-    def __init__(self, tasks):
-        self._tasks = {}
-        self.scheduler = Scheduler()
+    completed = set()
+    failed = set()
 
-        for task in tasks:
-            self.scheduler.add_task(task)
-            self._tasks[task.name] = task
+    with Scheduler(tasks, completed=completed, failed=failed) as scheduler:
+        while not scheduler.is_finished():
+            task = scheduler.start_task()
 
-    def run(self):
-        """
-        Run the Arbiter
-        """
-        return self.event_loop()
+            while task is not None:
+                result = execute(task)
 
-    def event_loop(self):
-        """
-        The loop in which tests actually run.
-        """
-        with self.scheduler as scheduler:
-            while not scheduler.is_finished():
+                # result exists iff execute is synchroous
+                if result:
+                    scheduler.end_task(result.name, result.successful)
+
                 task = scheduler.start_task()
 
-                while task is not None:
-                    self.execute(task)
+            if wait:
+                for result in wait():
+                    scheduler.end_task(result.name, result.successful)
 
-                    task = scheduler.start_task()
-
-                self.wait()
-
-        return Result(
-            completed=self.scheduler.completed,
-            failed=self.scheduler.failed
-        )
-
-    def execute(self, task):
-        """
-        Execute a task.
-
-        task: The task to execute
-        """
-        self.scheduler.end_task(task.name, task.function())
-
-    def wait(self):
-        """
-        Wait until tasks complete
-        """
-        pass
+    return Results(completed, failed)
