@@ -18,7 +18,7 @@ class Arbiter(object):
         self.scheduler = Scheduler()
 
         for task in tasks:
-            self.scheduler.add_task(task.name, task.dependencies)
+            self.scheduler.add_task(task)
             self._tasks[task.name] = task
 
     def run(self):
@@ -33,12 +33,12 @@ class Arbiter(object):
         """
         with self.scheduler as scheduler:
             while not scheduler.is_finished():
-                name = scheduler.start_task()
+                task = scheduler.start_task()
 
-                while name is not None:
-                    self.execute(self._tasks[name])
+                while task is not None:
+                    self.execute(task)
 
-                    name = scheduler.start_task()
+                    task = scheduler.start_task()
 
                 self.wait()
 

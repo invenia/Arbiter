@@ -21,14 +21,14 @@ class Scheduler(object):
             failed = set()
 
         self._graph = DirectedGraph(acyclic=True)
-        self._tasks = set()
+        self._tasks = {}
         self._running = set()
         self._completed = completed
         self._failed = failed
 
         if tasks is not None:
-            for name, dependencies in tasks.items():
-                self.add_task(name, dependencies=dependencies)
+            for task in tasks:
+                self.add_task(task)
 
     @property
     def completed(self):
@@ -64,30 +64,23 @@ class Scheduler(object):
         """
         return not (self._graph.roots or self._running)
 
-    def add_task(self, name, dependencies=None):
+    def add_task(self, task):
         """
         Add a task to the scheduler.
 
-        name: The name of the task being added. The name must be unique,
-            hashable, and cannot be None.
-        dependencies: (optional, None) An iterable of dependencies that
-            must complete successfully prior to running this task. If
-            any of these dependencies fail, the task will also fail.
+        task: The task to add.
         """
-        if not self._valid_name(name):
-            raise ValueError(name)
+        if not self._valid_name(task.name):
+            raise ValueError(task.name)
 
-        if dependencies is None:
-            dependencies = ()
-
-        self._tasks.add(name)
+        self._tasks[task.name] = task
 
         incomplete_dependencies = set()
 
-        for dependency in dependencies:
+        for dependency in task.dependencies:
             if not self._valid_name(dependency) or dependency in self._failed:
                 # there may already be tasks dependent on this one.
-                self._cascade_failure(name)
+                self._cascade_failure(task.name)
 
                 break
 
@@ -95,16 +88,16 @@ class Scheduler(object):
                 incomplete_dependencies.add(dependency)
         else:  # task hasn't failed
             try:
-                self._graph.add_node(name, incomplete_dependencies)
+                self._graph.add_node(task.name, incomplete_dependencies)
             except ValueError:
-                self._cascade_failure(name)
+                self._cascade_failure(task.name)
 
     def start_task(self, name=None):
         """
         Start a task.
 
-        Returns the name of the task that was started (or None if no
-            task has been started).
+        Returns the task that was started (or None if no task has been
+            started).
 
         name: (optional, None) The task to start. If a name is given,
             Scheduler will attempt to start the task (and raise an
@@ -124,7 +117,7 @@ class Scheduler(object):
 
         self._running.add(name)
 
-        return name
+        return self._tasks[name]
 
     def end_task(self, name, success=True):
         """

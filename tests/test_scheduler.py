@@ -3,6 +3,15 @@ Tests for the scheduler module.
 """
 from nose.tools import assert_equals, assert_true, assert_false, assert_raises
 
+from arbiter import task
+
+
+def create_task(name, dependencies=()):
+    """
+    Create a task
+    """
+    return task.create_task(name, None, dependencies)
+
 
 def test_empty():
     """
@@ -47,7 +56,7 @@ def test_add_task():
     scheduler = Scheduler()
 
     # no dependencies
-    scheduler.add_task('foo')
+    scheduler.add_task(create_task('foo'))
 
     assert_equals(scheduler.completed, frozenset())
     assert_equals(scheduler.failed, frozenset())
@@ -56,7 +65,7 @@ def test_add_task():
     assert_false(scheduler.is_finished())
 
     # 1 dependency
-    scheduler.add_task('bar', ('foo',))
+    scheduler.add_task(create_task('bar', ('foo',)))
 
     assert_equals(scheduler.completed, frozenset())
     assert_equals(scheduler.failed, frozenset())
@@ -65,7 +74,7 @@ def test_add_task():
     assert_false(scheduler.is_finished())
 
     # non-added dependency
-    scheduler.add_task('ipsum', ('lorem',))
+    scheduler.add_task(create_task('ipsum', ('lorem',)))
 
     assert_equals(scheduler.completed, frozenset())
     assert_equals(scheduler.failed, frozenset())
@@ -76,8 +85,8 @@ def test_add_task():
     # invalid tasks
 
     # invalid name
-    assert_raises(ValueError, scheduler.add_task, None)
-    assert_raises(ValueError, scheduler.add_task, set())
+    assert_raises(ValueError, scheduler.add_task, create_task(None))
+    assert_raises(ValueError, scheduler.add_task, create_task(set()))
 
     assert_equals(scheduler.completed, frozenset())
     assert_equals(scheduler.failed, frozenset())
@@ -86,7 +95,7 @@ def test_add_task():
     assert_false(scheduler.is_finished())
 
     # invalid dependency
-    scheduler.add_task('failed', (None,))
+    scheduler.add_task(create_task('failed', (None,)))
 
     assert_equals(scheduler.completed, frozenset())
     assert_equals(scheduler.failed, frozenset(('failed',)))
@@ -95,7 +104,7 @@ def test_add_task():
     assert_false(scheduler.is_finished())
 
     # circular dependencies
-    scheduler.add_task('ouroboros', ('ouroboros',))
+    scheduler.add_task(create_task('ouroboros', ('ouroboros',)))
 
     assert_equals(scheduler.completed, frozenset())
     assert_equals(scheduler.failed, frozenset(('failed', 'ouroboros')))
@@ -104,7 +113,7 @@ def test_add_task():
     assert_false(scheduler.is_finished())
 
     # dependency made circular
-    scheduler.add_task('tick', ('tock',))
+    scheduler.add_task(create_task('tick', ('tock',)))
 
     assert_equals(scheduler.completed, frozenset())
     assert_equals(scheduler.failed, frozenset(('failed', 'ouroboros')))
@@ -112,7 +121,7 @@ def test_add_task():
     assert_equals(scheduler.runnable, frozenset(('foo',)))
     assert_false(scheduler.is_finished())
 
-    scheduler.add_task('tock', ('tick',))
+    scheduler.add_task(create_task('tock', ('tick',)))
 
     assert_equals(scheduler.completed, frozenset())
     assert_equals(
@@ -123,14 +132,14 @@ def test_add_task():
     assert_false(scheduler.is_finished())
 
     at_init = Scheduler(
-        tasks={
-            'foo': (),
-            'bar': ('foo',),
-            'ipsum': ('lorem',),
-            'ouroboros': ('ouroboros',),
-            'tick': ('tock',),
-            'tock': ('tick',),
-        }
+        tasks=(
+            create_task('foo'),
+            create_task('bar', ('foo',)),
+            create_task('ipsum', ('lorem',)),
+            create_task('ouroboros', ('ouroboros',)),
+            create_task('tick', ('tock',)),
+            create_task('tock', ('tick',)),
+        )
     )
 
     assert_equals(at_init.completed, frozenset())
@@ -148,15 +157,15 @@ def test_remove_unrunnable():
     from arbiter.scheduler import Scheduler
 
     scheduler = Scheduler(
-        tasks={
-            'foo': (),
-            'bar': ('foo',),
-            'baz': ('bar',),
-            'ipsum': ('lorem',),
-            'dolor': ('ipsum',),
-            'sit': ('dolor', 'stand'),
-            'stand': (),
-        }
+        tasks=(
+            create_task('foo'),
+            create_task('bar', ('foo',)),
+            create_task('baz', ('bar',)),
+            create_task('ipsum', ('lorem',)),
+            create_task('dolor', ('ipsum',)),
+            create_task('sit', ('dolor', 'stand')),
+            create_task('stand'),
+        )
     )
 
     assert_equals(scheduler.completed, frozenset())
@@ -181,14 +190,14 @@ def test_start_task():
     from arbiter.scheduler import Scheduler
 
     scheduler = Scheduler(
-        tasks={
-            'foo': (),
-            'fighters': ('foo',),
-            'bar': ('foo',),
-            'baz': ('bar',),
-            'bell': ('bar',),
-            'node': (),
-        }
+        tasks=(
+            create_task('foo'),
+            create_task('fighters', ('foo',)),
+            create_task('bar', ('foo',)),
+            create_task('baz', ('bar',)),
+            create_task('bell', ('bar',)),
+            create_task('node'),
+        )
     )
 
     assert_equals(scheduler.completed, frozenset())
@@ -198,7 +207,7 @@ def test_start_task():
     assert_false(scheduler.is_finished())
 
     # start a specific task
-    assert_equals(scheduler.start_task('node'), 'node')
+    assert_equals(scheduler.start_task('node').name, 'node')
 
     assert_equals(scheduler.completed, frozenset())
     assert_equals(scheduler.failed, frozenset())
@@ -227,7 +236,7 @@ def test_start_task():
     assert_false(scheduler.is_finished())
 
     # start an arbitrary task
-    assert_equals(scheduler.start_task(), 'foo')
+    assert_equals(scheduler.start_task().name, 'foo')
 
     assert_equals(scheduler.completed, frozenset(('node',)))
     assert_equals(scheduler.failed, frozenset())
@@ -249,12 +258,12 @@ def test_start_task():
 
     started = scheduler.start_task()
 
-    assert_true(started in frozenset(('bar', 'fighters')))
+    assert_true(started.name in frozenset(('bar', 'fighters')))
 
     assert_equals(scheduler.completed, frozenset(('node', 'foo')))
     assert_equals(scheduler.failed, frozenset())
 
-    if started == 'bar':
+    if started.name == 'bar':
         assert_equals(scheduler.running, frozenset(('bar',)))
         assert_equals(scheduler.runnable, frozenset(('fighters',)))
     else:
@@ -270,14 +279,14 @@ def test_end_task():
     from arbiter.scheduler import Scheduler
 
     scheduler = Scheduler(
-        tasks={
-            'foo': (),
-            'fighters': ('foo',),
-            'bar': ('foo',),
-            'baz': ('bar',),
-            'qux': ('baz',),
-            'bell': ('bar',),
-        }
+        tasks=(
+            create_task('foo'),
+            create_task('fighters', ('foo',)),
+            create_task('bar', ('foo',)),
+            create_task('baz', ('bar',)),
+            create_task('qux', ('baz',)),
+            create_task('bell', ('bar',)),
+        )
     )
 
     assert_equals(scheduler.completed, frozenset())
@@ -325,15 +334,15 @@ def test_fail_remaining():
     from arbiter.scheduler import Scheduler
 
     scheduler = Scheduler(
-        tasks={
-            'foo': (),
-            'fighters': ('foo',),
-            'bar': ('foo',),
-            'baz': ('bar',),
-            'qux': ('baz',),
-            'bell': ('bar',),
-            'node': (),
-        }
+        tasks=(
+            create_task('foo'),
+            create_task('fighters', ('foo',)),
+            create_task('bar', ('foo',)),
+            create_task('baz', ('bar',)),
+            create_task('qux', ('baz',)),
+            create_task('bell', ('bar',)),
+            create_task('node'),
+        )
     )
 
     scheduler.start_task('foo')
@@ -352,7 +361,7 @@ def test_fail_remaining():
     assert_true(scheduler.is_finished())
 
     # did that break adding tasks?
-    scheduler.add_task('restart')
+    scheduler.add_task(create_task('restart'))
 
     assert_equals(scheduler.completed, frozenset(('foo',)))
     assert_equals(
@@ -372,16 +381,16 @@ def test_context_manager():
 
     completed = set()
     failed = set()
-    tasks = {
-        'foo': (),
-        'bar': ('foo',),
-        'baz': ('bar',),
-        'bell': ('bar',),
-        'lorem': (),
-        'ipsum': ('lorem',),
-        'node': (),
-        'failed': ('fake',),
-    }
+    tasks = (
+        create_task('foo'),
+        create_task('bar', ('foo',)),
+        create_task('baz', ('bar',)),
+        create_task('bell', ('bar',)),
+        create_task('lorem', ()),
+        create_task('ipsum', ('lorem',)),
+        create_task('node'),
+        create_task('failed', ('fake',)),
+    )
 
     with Scheduler(tasks, completed=completed, failed=failed) as scheduler:
         assert_equals(completed, frozenset())

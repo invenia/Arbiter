@@ -20,4 +20,4 @@ def create_task(name, function, dependencies=()):
     dependencies: (optional, ()) Any dependencies that this task relies
         on.
     """
-    return Task(name, function, dependencies)
+    return Task(name, function, frozenset(dependencies))
