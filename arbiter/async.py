@@ -1,8 +1,7 @@
 """
 Asynchronous task runner using concurrent futures
 """
-from concurrent.futures import (ProcessPoolExecutor, ThreadPoolExecutor,
-                                as_completed)
+import concurrent.futures
 
 from arbiter.base import task_loop, TaskResult
 
@@ -26,9 +25,9 @@ def run_tasks(tasks, max_workers=None, use_processes=False):
     futures = set()
 
     if use_processes:
-        get_executor = ProcessPoolExecutor
+        get_executor = concurrent.futures.ProcessPoolExecutor
     else:
-        get_executor = ThreadPoolExecutor
+        get_executor = concurrent.futures.ThreadPoolExecutor
 
     with get_executor(max_workers) as executor:
         def execute(task):
@@ -46,22 +45,11 @@ def run_tasks(tasks, max_workers=None, use_processes=False):
             """
             results = []
 
-            # Wait for at least one task to complete. Unfortunately,
-            # the options we have are: busy wait or iterate over futures
-            # as they completed.
-            #
-            # To non-busily wait until we have at least one completed
-            # future, iterate over futures as they complete, but
-            # immediately break.
-            for _ in as_completed(futures):
-                break
+            waited = concurrent.futures.wait(
+                futures, return_when=concurrent.futures.FIRST_COMPLETED
+            )
 
-            # we can't delete as we're iterating over the futures
-            completed = [
-                future for future in futures if future.done()
-            ]
-
-            for future in completed:
+            for future in waited.done:
                 results.append(TaskResult(future.name, future.result()))
                 futures.remove(future)
 
