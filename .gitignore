@@ -1,4 +1,7 @@
 *.pyc
 .coverage
 .tox
+.eggs
+arbiter.egg-info
+dist
 MANIFEST

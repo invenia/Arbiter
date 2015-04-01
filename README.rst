@@ -6,34 +6,9 @@ Arbiter
 .. image:: https://coveralls.io/repos/invenia/Arbiter/badge.png?branch=master
   :target: https://coveralls.io/r/invenia/Arbiter?branch=master
 
-Arbiter is a 2.7, 3.3+ compatible task-dependency solver. Given a set of
-tasks and their dependencies, arbiter calculates what tasks are currently
-runnable::
-
-    from arbiter import Arbiter
-
-    arbiter = Arbiter(
-        tasks={
-            'foo': None,
-            'bar': ['foo'],
-            'alpha': None,
-            'beta': ['alpha'],
-            'bravo': ['alpha'],
-            'lorem': ['foo', 'alpha'],
-        }
-    )
-
-    arbiter.runnable  # {'foo', 'alpha'}
-
-    arbiter.start_task('alpha')
-    arbiter.end_task('alpha', success=True)
-
-    arbiter.runnable  # {'foo', 'beta', 'bravo'}
-
-Arbiter is not a task-runner (there are already enough frameworks for
-concurrently running tasks), it is a solver that can be used in conjunction
-with an existing task scheduler in order to run your tasks in an efficient
-manner.
+Arbiter is a task-scheduler that resolves task dependencies. Given a set of
+tasks and their dependencies, Arbiter will run the tasks such that no task is
+run before a dependency has already successfully run.
 
 Installation
 ============
@@ -41,14 +16,29 @@ Arbiter is available on PyPI. To install::
 
     $ pip install arbiter
 
-Manual Installation
--------------------
-To install manually::
+Usage
+=====
 
-    $ git clone https://github.com/invenia/Arbiter
-    $ cd Arbiter
-    $ python setup.py install
+To create a task::
 
+    from arbiter import create_task
+
+    task = create_task(name, function)
+
+    # A task with dependencies
+    dependent task = create_task(name, function, (dependency, dependency2))
+
+To run tasks::
+
+    from arbiter.sync import run_tasks
+
+    results = run_tasks(tasks)
+
+Tasks can be run asynchronously::
+
+    from arbiter.async import run_tasks
+
+    results = run_tasks(tasks, max_workers=5)
 
 License
 =======

@@ -3,25 +3,16 @@ to install:
 
     python setup.py install
 """
-try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup
+from setuptools import setup
 
-DESCRIPTION = "A task-dependency solver"
-
-try:
-    LONG_DESCRIPTION = open('README.rst').read()
-except:
-    LONG_DESCRIPTION = DESCRIPTION
 
 setup(
     name="arbiter",
-    description=DESCRIPTION,
-    long_description=LONG_DESCRIPTION,
-    version="0.3.0",
+    description="A task-dependency solver",
+    long_description=open('README.rst').read(),
+    version="0.4.0",
     author="Brendan Curran-Johnson",
-    author_email="brendan@bcjbcj.ca",
+    author_email="brendan.curran.johnson@invenia.ca",
     license="MIT License",
     url="https://github.com/invenia/Arbiter",
 
@@ -29,7 +20,12 @@ setup(
         "arbiter",
     ),
 
+    install_requires=(
+        'futures',
+    ),
+
     tests_require=(
+        'asyncio',
         'coverage',
         'nose',
         'python-coveralls',
@@ -40,6 +36,7 @@ setup(
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 2.6",
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.3",

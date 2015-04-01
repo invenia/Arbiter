@@ -1,3 +1,6 @@
+futures
+
 coverage
+flake8
 nose
 python-coveralls
