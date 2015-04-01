@@ -10,7 +10,7 @@ setup(
     name="arbiter",
     description="A task-dependency solver",
     long_description=open('README.rst').read(),
-    version="0.3.0",
+    version="0.4.0",
     author="Brendan Curran-Johnson",
     author_email="brendan.curran.johnson@invenia.ca",
     license="MIT License",
@@ -25,6 +25,7 @@ setup(
     ),
 
     tests_require=(
+        'asyncio',
         'coverage',
         'nose',
         'python-coveralls',
