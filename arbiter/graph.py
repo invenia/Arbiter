@@ -186,7 +186,7 @@ class DirectedGraph(object):
 
         actual_node = self._nodes.get(node)
 
-        if actual_node is None:
+        if actual_node is None or node not in self._nodes:
             return False
 
         stack = list(actual_node.parents)
