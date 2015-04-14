@@ -411,3 +411,52 @@ def test_equality():
 
     assert_true(graph == other)
     assert_false(graph != other)
+
+
+def test_naming():
+    """
+    Names just need to be hashable.
+    """
+    from arbiter.graph import DirectedGraph
+
+    graph = DirectedGraph()
+
+    for name in (1, float('NaN'), 0, None, '', frozenset(), (), False, sum):
+        graph.add_node('child1', frozenset((name,)))
+
+        graph.add_node(name)
+
+        assert_true(name in graph)
+        assert_equals(graph.nodes, frozenset((name, 'child1')))
+        assert_equals(graph.roots, frozenset((name,)))
+        assert_equals(graph.get_children(name), frozenset(('child1',)))
+        assert_equals(graph.get_parents(name), frozenset())
+        assert_false(graph.is_ancestor(name, name))
+
+        graph.add_node('child2', frozenset((name,)))
+        assert_equals(
+            graph.get_children(name),
+            frozenset(('child1', 'child2'))
+        )
+
+        graph.remove_node(name)
+        graph.remove_node('child1')
+        graph.remove_node('child2')
+
+        assert_equals(graph.nodes, frozenset())
+
+    graph.add_node(None)
+    graph.add_node('', parents=((),))
+    graph.add_node((), parents=(frozenset(),))
+    graph.add_node(frozenset())
+
+    assert_equals(graph.nodes, frozenset((None, '', (), frozenset())))
+    assert_equals(graph.roots, frozenset((None, frozenset())))
+
+    graph.remove_node((), remove_children=True)
+
+    assert_equals(graph.nodes, frozenset((None, frozenset())))
+    assert_equals(graph.roots, frozenset((None, frozenset())))
+
+    assert_raises(TypeError, graph.add_node, [])
+    assert_raises(TypeError, graph.add_node, 'valid', parents=([],))

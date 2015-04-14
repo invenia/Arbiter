@@ -1,7 +1,7 @@
 """
 An implementation for a (possibly acyclic) directed graph.
 """
-from collections import namedtuple
+from collections import namedtuple, Hashable
 
 
 __all__ = ('DirectedGraph',)
@@ -32,9 +32,13 @@ class DirectedGraph(object):
 
         NOTE: A node can be added before its parents are added.
 
-        name: The name of the node to add to the graph.
+        name: The name of the node to add to the graph. Name can be any
+            unique Hashable value.
         parents: (optional, None) The name of the nodes parents.
         """
+        if not isinstance(name, Hashable):
+            raise TypeError(name)
+
         parents = set(parents or ())
         is_stub = False
 
@@ -51,9 +55,8 @@ class DirectedGraph(object):
             visited = set()
 
             for parent in parents:
-                if parent in self._nodes:
-                    if self.is_ancestor(parent, name, visited=visited):
-                        raise ValueError(parent)
+                if self.is_ancestor(parent, name, visited=visited):
+                    raise ValueError(parent)
                 elif parent == name:
                     raise ValueError(parent)
 
@@ -63,21 +66,21 @@ class DirectedGraph(object):
             self._stubs.remove(name)
 
         if parents:
-            for parent in parents:
-                if parent == name:  # cycle
+            for parent_name in parents:
+                if parent_name == name:  # cycle
                     node.children.add(name)
                 else:
-                    parent_node = self._nodes.get(parent)
+                    parent_node = self._nodes.get(parent_name)
 
-                    if parent_node:
+                    if parent_node is not None:
                         parent_node.children.add(name)
                     else:  # add stub
-                        self._nodes[parent] = Node(
-                            name=parent,
+                        self._nodes[parent_name] = Node(
+                            name=parent_name,
                             children=set((name,)),
                             parents=frozenset(),
                         )
-                        self._stubs.add(parent)
+                        self._stubs.add(parent_name)
         else:
             self._roots.add(name)
 
@@ -85,8 +88,8 @@ class DirectedGraph(object):
 
     def remove_node(self, name, remove_children=False):
         """
-        Remove a node from the graph. Returns the set of nodes
-        that were removed.
+        Remove a node from the graph. Returns the set of nodes that were
+        removed.
 
         If the node doesn't exist, an exception will be raised.
 
@@ -118,20 +121,20 @@ class DirectedGraph(object):
             removed.add(current)
 
             if remove_children:
-                for child in node.children:
-                    child_node = self._nodes[child]
+                for child_name in node.children:
+                    child_node = self._nodes[child_name]
 
                     child_node.parents.remove(current)
 
-                    stack.append(child)
+                    stack.append(child_name)
             else:
-                for child in node.children:
-                    child_node = self._nodes[child]
+                for child_name in node.children:
+                    child_node = self._nodes[child_name]
 
                     child_node.parents.remove(current)
 
                     if not child_node.parents:
-                        self._roots.add(child)
+                        self._roots.add(child_name)
 
         return removed
 
@@ -149,31 +152,31 @@ class DirectedGraph(object):
         """
         return frozenset(self._roots)
 
-    def get_children(self, node):
+    def get_children(self, name):
         """
         Get the set of children a node has.
 
-        node: The name of the node.
+        name: The name of the node.
 
         An exception will be raised if the node doesn't exist.
         """
-        return frozenset(self._nodes[node].children)
+        return frozenset(self._nodes[name].children)
 
-    def get_parents(self, node):
+    def get_parents(self, name):
         """
         Get the set of parents a node has.
 
-        node: The name of the node.
+        name: The name of the node.
 
         An exception will be raised if the node doesn't exist.
         """
-        return frozenset(self._nodes[node].parents)
+        return frozenset(self._nodes[name].parents)
 
-    def is_ancestor(self, node, ancestor, visited=None):
+    def is_ancestor(self, name, ancestor, visited=None):
         """
         Check whether a node has another node as an ancestor.
 
-        node: The name of the node being checked.
+        name: The name of the node being checked.
         ancestor: The name of the (possible) ancestor node.
         visited: (optional, None) If given, a set of nodes that have
             already been traversed. NOTE: The set will be updated with
@@ -184,12 +187,12 @@ class DirectedGraph(object):
         if visited is None:
             visited = set()
 
-        actual_node = self._nodes.get(node)
+        node = self._nodes.get(name)
 
-        if actual_node is None or node not in self._nodes:
+        if node is None or name not in self._nodes:
             return False
 
-        stack = list(actual_node.parents)
+        stack = list(node.parents)
 
         while stack:
             current = stack.pop()
@@ -200,9 +203,9 @@ class DirectedGraph(object):
             if current not in visited:
                 visited.add(current)
 
-                actual_node = self._nodes.get(current)
-                if actual_node:
-                    stack.extend(actual_node.parents)
+                node = self._nodes.get(current)
+                if node is not None:
+                    stack.extend(node.parents)
 
         return False
 
