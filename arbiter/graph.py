@@ -86,7 +86,8 @@ class DirectedGraph(object):
 
         self._nodes[name] = node
 
-    def remove_node(self, name, remove_children=False):
+    def remove_node(self, name, remove_children=False,
+                    transitive_parents=True):
         """
         Remove a node from the graph. Returns the set of nodes that were
         removed.
@@ -96,6 +97,9 @@ class DirectedGraph(object):
         name: The name of the node to remove.
         remove_children: (optional, False) Whether to recursively remove
             any children of the node.
+        transitive_parents: (optional, True) Whether to add the node's
+            parents to any of its children. This will only occur if
+            remove_children is False.
         """
         removed = set()
 
@@ -106,12 +110,15 @@ class DirectedGraph(object):
             node = self._nodes.pop(current)
 
             for parent_name in node.parents:
-                parent_node = self._nodes[parent_name]
+                if parent_name != name:
+                    parent_node = self._nodes[parent_name]
 
-                parent_node.children.remove(current)
+                    parent_node.children.remove(current)
 
-                if parent_name in self._stubs and not parent_node.children:
-                    stack.append(parent_name)
+                    if (parent_name in self._stubs and not parent_node.children
+                            and not (not remove_children and transitive_parents
+                                     and node.children)):
+                        stack.append(parent_name)
 
             if current in self._stubs:
                 self._stubs.remove(current)
@@ -129,12 +136,21 @@ class DirectedGraph(object):
                     stack.append(child_name)
             else:
                 for child_name in node.children:
-                    child_node = self._nodes[child_name]
+                    if child_name != current:
+                        child_node = self._nodes[child_name]
 
-                    child_node.parents.remove(current)
+                        child_node.parents.remove(current)
 
-                    if not child_node.parents:
-                        self._roots.add(child_name)
+                        if transitive_parents:
+                            for parent_name in node.parents:
+                                if parent_name != current:
+                                    parent_node = self._nodes[parent_name]
+
+                                    parent_node.children.add(child_name)
+                                    child_node.parents.add(parent_name)
+
+                        if not child_node.parents:
+                            self._roots.add(child_name)
 
         return removed
 

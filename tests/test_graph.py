@@ -191,7 +191,10 @@ def test_remove_node():
     assert_equals(graph.roots, frozenset())
 
     # node with child, unique stub parent
-    assert_equals(graph.remove_node('bar'), frozenset(('bar', 'foo')))
+    assert_equals(
+        graph.remove_node('bar', transitive_parents=False),
+        frozenset(('bar', 'foo'))
+    )
 
     assert_equals(
         graph.nodes,
@@ -224,7 +227,10 @@ def test_remove_node():
     assert_equals(graph.roots, frozenset(('baz', 'beta')))
 
     # cycle
-    assert_equals(graph.remove_node('tock'), frozenset(('tock',)))
+    assert_equals(
+        graph.remove_node('tock', transitive_parents=False),
+        frozenset(('tock',))
+    )
 
     assert_equals(
         graph.nodes,
@@ -238,6 +244,117 @@ def test_remove_node():
     assert_equals(graph.get_children('tick'), frozenset())
 
     assert_raises(KeyError, graph.remove_node, 'fake')
+
+
+def test_remove_node_transitively():
+    """
+    Remove a node (transitively making its parents its children's
+    parents) from a DirectedGraph.
+    """
+    from arbiter.graph import DirectedGraph
+
+    graph = DirectedGraph()
+
+    graph.add_node('ouroboros', ('ouroboros',))
+    graph.add_node('son of ouroboros', ('ouroboros',))
+    graph.add_node('tick', ('tock',))
+    graph.add_node('tock', ('tick',))
+    graph.add_node('aye')
+    graph.add_node('insect')
+    graph.add_node('bee', ('aye', 'insect'))
+    graph.add_node('cee', ('bee',))
+    graph.add_node('child', ('stub',))
+    graph.add_node('grandchild', ('child',))
+
+    assert_equals(
+        graph.nodes,
+        frozenset(
+            (
+                'ouroboros', 'son of ouroboros', 'tick', 'tock', 'aye',
+                'insect', 'bee', 'cee', 'child', 'stub', 'grandchild',
+            )
+        )
+    )
+
+    assert_equals(graph.roots, frozenset(('aye', 'insect')))
+
+    # don't pass yourself to children
+    assert_equals(graph.remove_node('ouroboros'), frozenset(('ouroboros',)))
+    assert_equals(
+        graph.nodes,
+        frozenset(
+            (
+                'son of ouroboros', 'tick', 'tock', 'aye',
+                'insect', 'bee', 'cee', 'child', 'stub', 'grandchild',
+            )
+        )
+    )
+
+    assert_equals(
+        graph.roots,
+        frozenset(('son of ouroboros', 'aye', 'insect'))
+    )
+
+    # pass a child to themselves
+    assert_equals(graph.remove_node('tock'), frozenset(('tock',)))
+    assert_equals(
+        graph.nodes,
+        frozenset(
+            (
+                'son of ouroboros', 'tick', 'aye',
+                'insect', 'bee', 'cee', 'child', 'stub', 'grandchild',
+            )
+        )
+    )
+
+    assert_equals(
+        graph.roots,
+        frozenset(('son of ouroboros', 'aye', 'insect'))
+    )
+
+    assert_equals(graph.get_children('tick'), frozenset(('tick',)))
+    assert_equals(graph.get_parents('tick'), frozenset(('tick',)))
+
+    # two new parents
+    assert_equals(graph.remove_node('bee'), frozenset(('bee',)))
+    assert_equals(
+        graph.nodes,
+        frozenset(
+            (
+                'son of ouroboros', 'tick', 'aye',
+                'insect', 'cee', 'child', 'stub', 'grandchild',
+            )
+        )
+    )
+
+    assert_equals(
+        graph.roots,
+        frozenset(('son of ouroboros', 'aye', 'insect'))
+    )
+
+    assert_equals(graph.get_children('aye'), frozenset(('cee',)))
+    assert_equals(graph.get_children('insect'), frozenset(('cee',)))
+    assert_equals(graph.get_parents('cee'), frozenset(('aye', 'insect')))
+
+    # now with stubs
+    assert_equals(graph.remove_node('child'), frozenset(('child',)))
+    assert_equals(
+        graph.nodes,
+        frozenset(
+            (
+                'son of ouroboros', 'tick', 'aye',
+                'insect', 'cee', 'stub', 'grandchild',
+            )
+        )
+    )
+
+    assert_equals(
+        graph.roots,
+        frozenset(('son of ouroboros', 'aye', 'insect'))
+    )
+
+    assert_equals(graph.get_children('stub'), frozenset(('grandchild',)))
+    assert_equals(graph.get_parents('grandchild'), frozenset(('stub',)))
 
 
 def test_remove_node_and_children():
@@ -302,31 +419,24 @@ def test_remove_node_and_children():
     assert_equals(graph.roots, frozenset())
 
     # stub
-    assert_equals(graph.remove_node('alpha'), frozenset(('alpha',)))
+    assert_equals(
+        graph.remove_node('alpha', True), frozenset(('alpha', 'beta'))
+    )
 
     assert_equals(
         graph.nodes,
         frozenset(
-            ('beta', 'tick', 'tock')
+            ('tick', 'tock')
         )
     )
-    assert_equals(graph.roots, frozenset(('beta',)))
 
     # cycle
-    assert_equals(graph.remove_node('tock'), frozenset(('tock',)))
+    assert_equals(graph.remove_node('tock', True), frozenset(('tock', 'tick')))
 
-    assert_equals(
-        graph.nodes,
-        frozenset(
-            ('beta', 'tick')
-        )
-    )
-    assert_equals(graph.roots, frozenset(('beta', 'tick')))
+    assert_equals(graph.nodes, frozenset())
+    assert_equals(graph.roots, frozenset())
 
-    assert_equals(graph.get_parents('tick'), frozenset())
-    assert_equals(graph.get_children('tick'), frozenset())
-
-    assert_raises(KeyError, graph.remove_node, 'fake')
+    assert_raises(KeyError, graph.remove_node, 'fake', True)
 
 
 def test_prune():
