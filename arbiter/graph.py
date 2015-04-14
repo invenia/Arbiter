@@ -1,34 +1,31 @@
 """
-An implementation for a (possibly acyclic) directed graph.
+An implementation for an acyclic directed graph.
 """
 from collections import namedtuple, Hashable
 
 
-__all__ = ('DirectedGraph',)
+__all__ = ('Graph',)
 
 
 Node = namedtuple('Node', ('name', 'children', 'parents'))
 
 
-class DirectedGraph(object):
+class Graph(object):
     """
-    A directed graph with optional cycle prevention.
+    An acyclic directed graph.
     """
-    def __init__(self, acyclic=False):
+    def __init__(self):
         self._nodes = {}
 
         self._stubs = set()
         self._roots = set()
-
-        self._acyclic = acyclic
 
     def add_node(self, name, parents=None):
         """
         add a node to the graph.
 
         Raises an exception if the node cannot be added (i.e., if a node
-        that name already exists, or if it would create a cycle in an
-        acyclic graph).
+        that name already exists, or if it would create a cycle.
 
         NOTE: A node can be added before its parents are added.
 
@@ -51,14 +48,14 @@ class DirectedGraph(object):
         else:
             node = Node(name, set(), parents)
 
-        if self._acyclic:
-            visited = set()
+        # cycle detection
+        visited = set()
 
-            for parent in parents:
-                if self.is_ancestor(parent, name, visited=visited):
-                    raise ValueError(parent)
-                elif parent == name:
-                    raise ValueError(parent)
+        for parent in parents:
+            if self.is_ancestor(parent, name, visited=visited):
+                raise ValueError(parent)
+            elif parent == name:
+                raise ValueError(parent)
 
         # Node safe to add
 
@@ -67,20 +64,17 @@ class DirectedGraph(object):
 
         if parents:
             for parent_name in parents:
-                if parent_name == name:  # cycle
-                    node.children.add(name)
-                else:
-                    parent_node = self._nodes.get(parent_name)
+                parent_node = self._nodes.get(parent_name)
 
-                    if parent_node is not None:
-                        parent_node.children.add(name)
-                    else:  # add stub
-                        self._nodes[parent_name] = Node(
-                            name=parent_name,
-                            children=set((name,)),
-                            parents=frozenset(),
-                        )
-                        self._stubs.add(parent_name)
+                if parent_node is not None:
+                    parent_node.children.add(name)
+                else:  # add stub
+                    self._nodes[parent_name] = Node(
+                        name=parent_name,
+                        children=set((name,)),
+                        parents=frozenset(),
+                    )
+                    self._stubs.add(parent_name)
         else:
             self._roots.add(name)
 
@@ -109,24 +103,6 @@ class DirectedGraph(object):
             current = stack.pop()
             node = self._nodes.pop(current)
 
-            for parent_name in node.parents:
-                if parent_name != name:
-                    parent_node = self._nodes[parent_name]
-
-                    parent_node.children.remove(current)
-
-                    if (parent_name in self._stubs and not parent_node.children
-                            and not (not remove_children and transitive_parents
-                                     and node.children)):
-                        stack.append(parent_name)
-
-            if current in self._stubs:
-                self._stubs.remove(current)
-            elif current in self._roots:
-                self._roots.remove(current)
-
-            removed.add(current)
-
             if remove_children:
                 for child_name in node.children:
                     child_node = self._nodes[child_name]
@@ -136,21 +112,34 @@ class DirectedGraph(object):
                     stack.append(child_name)
             else:
                 for child_name in node.children:
-                    if child_name != current:
-                        child_node = self._nodes[child_name]
+                    child_node = self._nodes[child_name]
 
-                        child_node.parents.remove(current)
+                    child_node.parents.remove(current)
 
-                        if transitive_parents:
-                            for parent_name in node.parents:
-                                if parent_name != current:
-                                    parent_node = self._nodes[parent_name]
+                    if transitive_parents:
+                        for parent_name in node.parents:
+                            parent_node = self._nodes[parent_name]
 
-                                    parent_node.children.add(child_name)
-                                    child_node.parents.add(parent_name)
+                            parent_node.children.add(child_name)
+                            child_node.parents.add(parent_name)
 
-                        if not child_node.parents:
-                            self._roots.add(child_name)
+                    if not child_node.parents:
+                        self._roots.add(child_name)
+
+            if current in self._stubs:
+                self._stubs.remove(current)
+            elif current in self._roots:
+                self._roots.remove(current)
+            else:  # stubs and roots (by definition) don't have parents
+                for parent_name in node.parents:
+                    parent_node = self._nodes[parent_name]
+
+                    parent_node.children.remove(current)
+
+                    if parent_name in self._stubs and not parent_node.children:
+                        stack.append(parent_name)
+
+            removed.add(current)
 
         return removed
 
@@ -250,7 +239,7 @@ class DirectedGraph(object):
         """
         Equality checking
         """
-        if not isinstance(other, DirectedGraph):
+        if not isinstance(other, Graph):
             return NotImplemented
 
         return self._nodes == other._nodes and self._stubs == other._stubs
@@ -259,7 +248,7 @@ class DirectedGraph(object):
         """
         Inequality checking
         """
-        if not isinstance(other, DirectedGraph):
+        if not isinstance(other, Graph):
             return NotImplemented
 
         return not (self == other)

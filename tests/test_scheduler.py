@@ -415,3 +415,22 @@ def test_context_manager():
         failed,
         frozenset(('failed', 'lorem', 'ipsum', 'bar', 'baz', 'bell', 'node'))
     )
+
+
+# def test_naming():
+#     """
+#     Names just need to be hashable and not be None.
+#     """
+#     from arbiter.scheduler import Scheduler
+
+#     scheduler = Scheduler()
+
+#     scheduler.add_task(create_task(1, (float('NaN'),)))
+#     scheduler.add_task(create_task(float('NaN'), (0,)))
+#     scheduler.add_task(create_task(0, ('',)))
+#     scheduler.add_task(create_task(frozenset(), ((),)))
+#     scheduler.add_task(create_task((), (False,)))
+#     scheduler.add_task(create_task(False, (sum,)))
+#     scheduler.add_task(create_task(sum,))
+
+#     scheduler.

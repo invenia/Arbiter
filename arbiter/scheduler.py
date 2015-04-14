@@ -3,7 +3,7 @@ The dependency scheduler.
 """
 from collections import Hashable
 
-from arbiter.graph import DirectedGraph
+from arbiter.graph import Graph
 
 
 __all__ = ('Scheduler',)
@@ -20,7 +20,7 @@ class Scheduler(object):
         if failed is None:
             failed = set()
 
-        self._graph = DirectedGraph(acyclic=True)
+        self._graph = Graph()
         self._tasks = {}
         self._running = set()
         self._completed = completed
@@ -147,7 +147,7 @@ class Scheduler(object):
         failed.
         """
         self._failed.update(self._graph.nodes)
-        self._graph = DirectedGraph(acyclic=True)
+        self._graph = Graph()
         self._running = set()
 
     def _cascade_failure(self, name):
