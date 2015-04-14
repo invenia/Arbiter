@@ -217,15 +217,12 @@ class DirectedGraph(object):
         Returns the set of nodes which were removed.
         """
         pruned = set()
+        stubs = frozenset(self._stubs)
 
-        while self._stubs:
-            stub = next(iter(self._stubs))  # get an arbitrary stub
+        for stub in stubs:
+            pruned.update(self.remove_node(stub, remove_children=True))
 
-            pruned.update(
-                self.remove_node(stub, remove_children=True) - set((stub,))
-            )
-
-        return pruned
+        return pruned - stubs  # we're only returning actual nodes
 
     def __contains__(self, node):
         """
