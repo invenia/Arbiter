@@ -4,7 +4,7 @@ Tests for the graph module.
 from nose.tools import assert_equals, assert_true, assert_false, assert_raises
 
 
-def test_add_node():
+def test_add():
     """
     add a node to a Graph
     """
@@ -16,7 +16,7 @@ def test_add_node():
     assert_equals(graph.roots, frozenset())
     assert_false('foo' in graph)
 
-    graph.add_node('foo')
+    graph.add('foo')
 
     assert_equals(graph.nodes, frozenset(('foo',)))
     assert_equals(graph.roots, frozenset(('foo',)))
@@ -25,7 +25,7 @@ def test_add_node():
     assert_equals(graph.get_parents('foo'), frozenset())
     assert_false(graph.is_ancestor('foo', 'foo'))
 
-    graph.add_node('bar', ('foo', 'baz'))
+    graph.add('bar', ('foo', 'baz'))
 
     assert_equals(graph.nodes, frozenset(('foo', 'bar', 'baz')))
     assert_equals(graph.roots, frozenset(('foo',)))
@@ -54,15 +54,15 @@ def test_add_node():
     assert_false(graph.is_ancestor('baz', 'bar'))
     assert_false(graph.is_ancestor('baz', 'baz'))
 
-    assert_raises(ValueError, graph.add_node, 'baz', ('bar',))
-    assert_raises(ValueError, graph.add_node, 'ouroboros', ('ouroboros',))
-    assert_raises(ValueError, graph.add_node, 'foo')
+    assert_raises(ValueError, graph.add, 'baz', ('bar',))
+    assert_raises(ValueError, graph.add, 'ouroboros', ('ouroboros',))
+    assert_raises(ValueError, graph.add, 'foo')
 
     assert_equals(graph.nodes, frozenset(('foo', 'bar', 'baz')))
     assert_equals(graph.roots, frozenset(('foo',)))
 
 
-def test_remove_node():
+def test_remove():
     """
     Remove a node from a Graph
     """
@@ -70,11 +70,11 @@ def test_remove_node():
 
     graph = Graph()
 
-    graph.add_node('node')
-    graph.add_node('bar', ('foo',))
-    graph.add_node('baz', ('bar',))
-    graph.add_node('beta', ('alpha',))
-    graph.add_node('bravo', ('alpha',))
+    graph.add('node')
+    graph.add('bar', ('foo',))
+    graph.add('baz', ('bar',))
+    graph.add('beta', ('alpha',))
+    graph.add('bravo', ('alpha',))
 
     assert_equals(
         graph.nodes,
@@ -86,7 +86,7 @@ def test_remove_node():
 
     # node with no children/parents
     assert_equals(
-        graph.remove_node('node', transitive_parents=False),
+        graph.remove('node', transitive_parents=False),
         frozenset(('node',))
     )
 
@@ -100,7 +100,7 @@ def test_remove_node():
 
     # node with child, unique stub parent
     assert_equals(
-        graph.remove_node('bar', transitive_parents=False),
+        graph.remove('bar', transitive_parents=False),
         frozenset(('bar', 'foo'))
     )
 
@@ -114,7 +114,7 @@ def test_remove_node():
 
     # node with non-unique stub parent
     assert_equals(
-        graph.remove_node('bravo', transitive_parents=False),
+        graph.remove('bravo', transitive_parents=False),
         frozenset(('bravo',))
     )
 
@@ -128,7 +128,7 @@ def test_remove_node():
 
     # stub
     assert_equals(
-        graph.remove_node('alpha', transitive_parents=False),
+        graph.remove('alpha', transitive_parents=False),
         frozenset(('alpha',))
     )
 
@@ -140,10 +140,10 @@ def test_remove_node():
     )
     assert_equals(graph.roots, frozenset(('baz', 'beta')))
 
-    assert_raises(KeyError, graph.remove_node, 'fake')
+    assert_raises(KeyError, graph.remove, 'fake')
 
 
-def test_remove_node_transitively():
+def test_remove_transitively():
     """
     Remove a node (transitively making its parents its children's
     parents) from a Graph.
@@ -152,12 +152,12 @@ def test_remove_node_transitively():
 
     graph = Graph()
 
-    graph.add_node('aye')
-    graph.add_node('insect')
-    graph.add_node('bee', ('aye', 'insect'))
-    graph.add_node('cee', ('bee',))
-    graph.add_node('child', ('stub', 'stub2'))
-    graph.add_node('grandchild', ('child',))
+    graph.add('aye')
+    graph.add('insect')
+    graph.add('bee', ('aye', 'insect'))
+    graph.add('cee', ('bee',))
+    graph.add('child', ('stub', 'stub2'))
+    graph.add('grandchild', ('child',))
 
     assert_equals(
         graph.nodes,
@@ -172,7 +172,7 @@ def test_remove_node_transitively():
     assert_equals(graph.roots, frozenset(('aye', 'insect')))
 
     # two new parents
-    assert_equals(graph.remove_node('bee'), frozenset(('bee',)))
+    assert_equals(graph.remove('bee'), frozenset(('bee',)))
     assert_equals(
         graph.nodes,
         frozenset(
@@ -192,7 +192,7 @@ def test_remove_node_transitively():
     assert_equals(graph.get_parents('cee'), frozenset(('aye', 'insect')))
 
     # now with stubs
-    assert_equals(graph.remove_node('child'), frozenset(('child',)))
+    assert_equals(graph.remove('child'), frozenset(('child',)))
     assert_equals(
         graph.nodes,
         frozenset(
@@ -215,7 +215,7 @@ def test_remove_node_transitively():
     )
 
     # delete a stub
-    assert_equals(graph.remove_node('stub2'), frozenset(('stub2',)))
+    assert_equals(graph.remove('stub2'), frozenset(('stub2',)))
     assert_equals(
         graph.nodes,
         frozenset(
@@ -234,7 +234,7 @@ def test_remove_node_transitively():
     assert_equals(graph.get_parents('grandchild'), frozenset(('stub',)))
 
 
-def test_remove_node_and_children():
+def test_remove_and_children():
     """
     Remove a node (and its children) from a Graph
     """
@@ -242,11 +242,11 @@ def test_remove_node_and_children():
 
     graph = Graph()
 
-    graph.add_node('node')
-    graph.add_node('bar', ('foo',))
-    graph.add_node('baz', ('bar',))
-    graph.add_node('beta', ('alpha',))
-    graph.add_node('bravo', ('alpha',))
+    graph.add('node')
+    graph.add('bar', ('foo',))
+    graph.add('baz', ('bar',))
+    graph.add('beta', ('alpha',))
+    graph.add('bravo', ('alpha',))
 
     assert_equals(
         graph.nodes,
@@ -258,7 +258,7 @@ def test_remove_node_and_children():
 
     # node with no children/parents
     assert_equals(
-        graph.remove_node('node', remove_children=True),
+        graph.remove('node', remove_children=True),
         frozenset(('node',))
     )
 
@@ -272,7 +272,7 @@ def test_remove_node_and_children():
 
     # node with child, unique stub parent
     assert_equals(
-        graph.remove_node('bar', remove_children=True),
+        graph.remove('bar', remove_children=True),
         frozenset(('bar', 'foo', 'baz'))
     )
 
@@ -285,7 +285,7 @@ def test_remove_node_and_children():
     assert_equals(graph.roots, frozenset())
 
     # node with non-unique stub parent
-    assert_equals(graph.remove_node('bravo'), frozenset(('bravo',)))
+    assert_equals(graph.remove('bravo'), frozenset(('bravo',)))
 
     assert_equals(
         graph.nodes,
@@ -297,7 +297,7 @@ def test_remove_node_and_children():
 
     # stub
     assert_equals(
-        graph.remove_node('alpha', remove_children=True),
+        graph.remove('alpha', remove_children=True),
         frozenset(('alpha', 'beta'))
     )
 
@@ -306,7 +306,7 @@ def test_remove_node_and_children():
         frozenset()
     )
 
-    assert_raises(KeyError, graph.remove_node, 'fake', remove_children=True)
+    assert_raises(KeyError, graph.remove, 'fake', remove_children=True)
 
 
 def test_prune():
@@ -317,11 +317,11 @@ def test_prune():
 
     graph = Graph()
 
-    graph.add_node('node')
-    graph.add_node('bar', ('foo',))
-    graph.add_node('baz', ('bar',))
-    graph.add_node('beta', ('alpha',))
-    graph.add_node('bravo', ('alpha',))
+    graph.add('node')
+    graph.add('bar', ('foo',))
+    graph.add('baz', ('bar',))
+    graph.add('beta', ('alpha',))
+    graph.add('bravo', ('alpha',))
 
     assert_equals(
         graph.nodes,
@@ -371,20 +371,20 @@ def test_equality():
     assert_true(graph == other)
     assert_false(graph != other)
 
-    graph.add_node('foo')
+    graph.add('foo')
 
     assert_false(graph == other)
     assert_true(graph != other)
 
-    graph.add_node('bar', ('foo',))
+    graph.add('bar', ('foo',))
 
-    other.add_node('bar', ('foo',))
+    other.add('bar', ('foo',))
 
     # still shouldn't match graph['foo'] is a stub
     assert_false(graph == other)
     assert_true(graph != other)
 
-    other.add_node('foo')
+    other.add('foo')
 
     assert_true(graph == other)
     assert_false(graph != other)
@@ -399,9 +399,9 @@ def test_naming():
     graph = Graph()
 
     for name in (1, float('NaN'), 0, None, '', frozenset(), (), False, sum):
-        graph.add_node('child1', frozenset((name,)))
+        graph.add('child1', frozenset((name,)))
 
-        graph.add_node(name)
+        graph.add(name)
 
         assert_true(name in graph)
         assert_equals(graph.nodes, frozenset((name, 'child1')))
@@ -410,30 +410,30 @@ def test_naming():
         assert_equals(graph.get_parents(name), frozenset())
         assert_false(graph.is_ancestor(name, name))
 
-        graph.add_node('child2', frozenset((name,)))
+        graph.add('child2', frozenset((name,)))
         assert_equals(
             graph.get_children(name),
             frozenset(('child1', 'child2'))
         )
 
-        graph.remove_node(name)
-        graph.remove_node('child1')
-        graph.remove_node('child2')
+        graph.remove(name)
+        graph.remove('child1')
+        graph.remove('child2')
 
         assert_equals(graph.nodes, frozenset())
 
-    graph.add_node(None)
-    graph.add_node('', parents=((),))
-    graph.add_node((), parents=(frozenset(),))
-    graph.add_node(frozenset())
+    graph.add(None)
+    graph.add('', parents=((),))
+    graph.add((), parents=(frozenset(),))
+    graph.add(frozenset())
 
     assert_equals(graph.nodes, frozenset((None, '', (), frozenset())))
     assert_equals(graph.roots, frozenset((None, frozenset())))
 
-    graph.remove_node((), remove_children=True)
+    graph.remove((), remove_children=True)
 
     assert_equals(graph.nodes, frozenset((None, frozenset())))
     assert_equals(graph.roots, frozenset((None, frozenset())))
 
-    assert_raises(TypeError, graph.add_node, [])
-    assert_raises(TypeError, graph.add_node, 'valid', parents=([],))
+    assert_raises(TypeError, graph.add, [])
+    assert_raises(TypeError, graph.add, 'valid', parents=([],))

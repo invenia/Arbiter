@@ -88,7 +88,7 @@ class Scheduler(object):
                 incomplete_dependencies.add(dependency)
         else:  # task hasn't failed
             try:
-                self._graph.add_node(task.name, incomplete_dependencies)
+                self._graph.add(task.name, incomplete_dependencies)
             except ValueError:
                 self._cascade_failure(task.name)
 
@@ -131,7 +131,7 @@ class Scheduler(object):
 
         if success:
             self._completed.add(name)
-            self._graph.remove_node(name, remove_children=False)
+            self._graph.remove(name, remove_children=False)
         else:
             self._cascade_failure(name)
 
@@ -158,7 +158,7 @@ class Scheduler(object):
         """
         if name in self._graph:
             self._failed.update(
-                self._graph.remove_node(name, remove_children=True)
+                self._graph.remove(name, remove_children=True)
             )
         else:
             self._failed.add(name)

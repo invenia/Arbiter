@@ -20,7 +20,7 @@ class Graph(object):
         self._stubs = set()
         self._roots = set()
 
-    def add_node(self, name, parents=None):
+    def add(self, name, parents=None):
         """
         add a node to the graph.
 
@@ -80,8 +80,7 @@ class Graph(object):
 
         self._nodes[name] = node
 
-    def remove_node(self, name, remove_children=False,
-                    transitive_parents=True):
+    def remove(self, name, remove_children=False, transitive_parents=True):
         """
         Remove a node from the graph. Returns the set of nodes that were
         removed.
@@ -225,7 +224,7 @@ class Graph(object):
         stubs = frozenset(self._stubs)
 
         for stub in stubs:
-            pruned.update(self.remove_node(stub, remove_children=True))
+            pruned.update(self.remove(stub, remove_children=True))
 
         return pruned - stubs  # we're only returning actual nodes
 
