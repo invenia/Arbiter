@@ -3,7 +3,7 @@ The dependency scheduler.
 """
 from collections import Hashable
 
-from arbiter.graph import Graph
+from arbiter.graph import Graph, Strategy
 
 
 __all__ = ('Scheduler',)
@@ -131,7 +131,7 @@ class Scheduler(object):
 
         if success:
             self._completed.add(name)
-            self._graph.remove(name, remove_children=False)
+            self._graph.remove(name, strategy=Strategy.orphan)
         else:
             self._cascade_failure(name)
 
@@ -158,7 +158,7 @@ class Scheduler(object):
         """
         if name in self._graph:
             self._failed.update(
-                self._graph.remove(name, remove_children=True)
+                self._graph.remove(name, strategy=Strategy.remove)
             )
         else:
             self._failed.add(name)

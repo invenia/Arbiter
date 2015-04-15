@@ -62,11 +62,11 @@ def test_add():
     assert_equals(graph.roots, frozenset(('foo',)))
 
 
-def test_remove():
+def test_remove_orphan():
     """
     Remove a node from a Graph
     """
-    from arbiter.graph import Graph
+    from arbiter.graph import Graph, Strategy
 
     graph = Graph()
 
@@ -86,7 +86,7 @@ def test_remove():
 
     # node with no children/parents
     assert_equals(
-        graph.remove('node', transitive_parents=False),
+        graph.remove('node', strategy=Strategy.orphan),
         frozenset(('node',))
     )
 
@@ -100,7 +100,7 @@ def test_remove():
 
     # node with child, unique stub parent
     assert_equals(
-        graph.remove('bar', transitive_parents=False),
+        graph.remove('bar', strategy=Strategy.orphan),
         frozenset(('bar', 'foo'))
     )
 
@@ -114,7 +114,7 @@ def test_remove():
 
     # node with non-unique stub parent
     assert_equals(
-        graph.remove('bravo', transitive_parents=False),
+        graph.remove('bravo', strategy=Strategy.orphan),
         frozenset(('bravo',))
     )
 
@@ -128,7 +128,7 @@ def test_remove():
 
     # stub
     assert_equals(
-        graph.remove('alpha', transitive_parents=False),
+        graph.remove('alpha', strategy=Strategy.orphan),
         frozenset(('alpha',))
     )
 
@@ -143,7 +143,7 @@ def test_remove():
     assert_raises(KeyError, graph.remove, 'fake')
 
 
-def test_remove_transitively():
+def test_remove_promote():
     """
     Remove a node (transitively making its parents its children's
     parents) from a Graph.
@@ -234,11 +234,11 @@ def test_remove_transitively():
     assert_equals(graph.parents('grandchild'), frozenset(('stub',)))
 
 
-def test_remove_and_children():
+def test_remove_remove():
     """
     Remove a node (and its children) from a Graph
     """
-    from arbiter.graph import Graph
+    from arbiter.graph import Graph, Strategy
 
     graph = Graph()
 
@@ -258,7 +258,7 @@ def test_remove_and_children():
 
     # node with no children/parents
     assert_equals(
-        graph.remove('node', remove_children=True),
+        graph.remove('node', strategy=Strategy.remove),
         frozenset(('node',))
     )
 
@@ -272,7 +272,7 @@ def test_remove_and_children():
 
     # node with child, unique stub parent
     assert_equals(
-        graph.remove('bar', remove_children=True),
+        graph.remove('bar', strategy=Strategy.remove),
         frozenset(('bar', 'foo', 'baz'))
     )
 
@@ -297,7 +297,7 @@ def test_remove_and_children():
 
     # stub
     assert_equals(
-        graph.remove('alpha', remove_children=True),
+        graph.remove('alpha', strategy=Strategy.remove),
         frozenset(('alpha', 'beta'))
     )
 
@@ -306,7 +306,7 @@ def test_remove_and_children():
         frozenset()
     )
 
-    assert_raises(KeyError, graph.remove, 'fake', remove_children=True)
+    assert_raises(KeyError, graph.remove, 'fake', strategy=Strategy.remove)
 
 
 def test_prune():
@@ -394,7 +394,7 @@ def test_naming():
     """
     Node names just need to be hashable.
     """
-    from arbiter.graph import Graph
+    from arbiter.graph import Graph, Strategy
 
     graph = Graph()
 
@@ -430,7 +430,7 @@ def test_naming():
     assert_equals(graph.nodes, frozenset((None, '', (), frozenset())))
     assert_equals(graph.roots, frozenset((None, frozenset())))
 
-    graph.remove((), remove_children=True)
+    graph.remove((), strategy=Strategy.remove)
 
     assert_equals(graph.nodes, frozenset((None, frozenset())))
     assert_equals(graph.roots, frozenset((None, frozenset())))

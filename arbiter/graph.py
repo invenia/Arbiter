@@ -2,12 +2,15 @@
 An implementation for an acyclic directed graph.
 """
 from collections import namedtuple, Hashable
+from enum import Enum
 
 
-__all__ = ('Graph',)
+__all__ = ('Graph', 'Strategy')
 
 
 Node = namedtuple('Node', ('name', 'children', 'parents'))
+
+Strategy = Enum('Strategy', ('orphan', 'promote', 'remove'))
 
 
 class Graph(object):
@@ -80,7 +83,7 @@ class Graph(object):
 
         self._nodes[name] = node
 
-    def remove(self, name, remove_children=False, transitive_parents=True):
+    def remove(self, name, strategy=Strategy.promote):
         """
         Remove a node from the graph. Returns the set of nodes that were
         removed.
@@ -88,11 +91,13 @@ class Graph(object):
         If the node doesn't exist, an exception will be raised.
 
         name: The name of the node to remove.
-        remove_children: (optional, False) Whether to recursively remove
-            any children of the node.
-        transitive_parents: (optional, True) Whether to add the node's
-            parents to any of its children. This will only occur if
-            remove_children is False.
+        strategy: (Optional, Strategy.promote) What to do with children
+            or removed nodes. The options are:
+
+            orphan: remove the node from the child's set of parents.
+            promote: replace the node with the the node's parents in the
+                childs set of parents.
+            remove: recursively remove all children of the node.
         """
         removed = set()
 
@@ -102,7 +107,7 @@ class Graph(object):
             current = stack.pop()
             node = self._nodes.pop(current)
 
-            if remove_children:
+            if strategy == Strategy.remove:
                 for child_name in node.children:
                     child_node = self._nodes[child_name]
 
@@ -115,7 +120,7 @@ class Graph(object):
 
                     child_node.parents.remove(current)
 
-                    if transitive_parents:
+                    if strategy == Strategy.promote:
                         for parent_name in node.parents:
                             parent_node = self._nodes[parent_name]
 
@@ -224,7 +229,7 @@ class Graph(object):
         stubs = frozenset(self._stubs)
 
         for stub in stubs:
-            pruned.update(self.remove(stub, remove_children=True))
+            pruned.update(self.remove(stub, strategy=Strategy.remove))
 
         return pruned - stubs  # we're only returning actual nodes
 
