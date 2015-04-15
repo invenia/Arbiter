@@ -379,8 +379,6 @@ def test_context_manager():
     """
     from arbiter.scheduler import Scheduler
 
-    completed = set()
-    failed = set()
     tasks = (
         create_task('foo'),
         create_task('bar', ('foo',)),
@@ -392,27 +390,32 @@ def test_context_manager():
         create_task('failed', ('fake',)),
     )
 
-    with Scheduler(tasks, completed=completed, failed=failed) as scheduler:
-        assert_equals(completed, frozenset())
-        assert_equals(failed, frozenset(('failed',)))
+    scheduler = Scheduler(tasks)
+
+    with scheduler:
+        assert_equals(scheduler.completed, frozenset())
+        assert_equals(scheduler.failed, frozenset(('failed',)))
 
         scheduler.start_task('foo')
         scheduler.end_task('foo')
 
-        assert_equals(completed, frozenset(('foo',)))
-        assert_equals(failed, frozenset(('failed',)))
+        assert_equals(scheduler.completed, frozenset(('foo',)))
+        assert_equals(scheduler.failed, frozenset(('failed',)))
 
         scheduler.start_task('lorem')
         scheduler.end_task('lorem', False)
 
-        assert_equals(completed, frozenset(('foo',)))
-        assert_equals(failed, frozenset(('failed', 'lorem', 'ipsum')))
+        assert_equals(scheduler.completed, frozenset(('foo',)))
+        assert_equals(
+            scheduler.failed,
+            frozenset(('failed', 'lorem', 'ipsum'))
+        )
 
         scheduler.start_task('bar')
 
-    assert_equals(completed, frozenset(('foo',)))
+    assert_equals(scheduler.completed, frozenset(('foo',)))
     assert_equals(
-        failed,
+        scheduler.failed,
         frozenset(('failed', 'lorem', 'ipsum', 'bar', 'baz', 'bell', 'node'))
     )
 

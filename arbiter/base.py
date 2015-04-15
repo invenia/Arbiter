@@ -21,10 +21,7 @@ def task_loop(tasks, execute, wait=None):
         If given, this function should take no arguments, and should
         return an iterable of TaskResults.
     """
-    completed = set()
-    failed = set()
-
-    with Scheduler(tasks, completed=completed, failed=failed) as scheduler:
+    with Scheduler(tasks) as scheduler:
         while not scheduler.is_finished():
             task = scheduler.start_task()
 
@@ -41,4 +38,4 @@ def task_loop(tasks, execute, wait=None):
                 for result in wait():
                     scheduler.end_task(result.name, result.successful)
 
-    return Results(completed, failed)
+        return Results(scheduler.completed, scheduler.failed)

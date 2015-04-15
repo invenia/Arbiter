@@ -13,18 +13,12 @@ class Scheduler(object):
     """
     A dependency scheduler.
     """
-    def __init__(self, tasks=None, completed=None, failed=None):
-        if completed is None:
-            completed = set()
-
-        if failed is None:
-            failed = set()
-
+    def __init__(self, tasks=None):
         self._graph = Graph()
         self._tasks = {}
         self._running = set()
-        self._completed = completed
-        self._failed = failed
+        self._completed = set()
+        self._failed = set()
 
         if tasks is not None:
             for task in tasks:
