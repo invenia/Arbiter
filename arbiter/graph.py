@@ -1,34 +1,34 @@
 """
-An implementation for a (possibly acyclic) directed graph.
+An implementation for an acyclic directed graph.
 """
 from collections import namedtuple, Hashable
+from enum import Enum
 
 
-__all__ = ('DirectedGraph',)
+__all__ = ('Graph', 'Strategy')
 
 
 Node = namedtuple('Node', ('name', 'children', 'parents'))
 
+Strategy = Enum('Strategy', ('orphan', 'promote', 'remove'))
 
-class DirectedGraph(object):
+
+class Graph(object):
     """
-    A directed graph with optional cycle prevention.
+    An acyclic directed graph.
     """
-    def __init__(self, acyclic=False):
+    def __init__(self):
         self._nodes = {}
 
         self._stubs = set()
         self._roots = set()
 
-        self._acyclic = acyclic
-
-    def add_node(self, name, parents=None):
+    def add(self, name, parents=None):
         """
         add a node to the graph.
 
         Raises an exception if the node cannot be added (i.e., if a node
-        that name already exists, or if it would create a cycle in an
-        acyclic graph).
+        that name already exists, or if it would create a cycle.
 
         NOTE: A node can be added before its parents are added.
 
@@ -51,43 +51,38 @@ class DirectedGraph(object):
         else:
             node = Node(name, set(), parents)
 
-        if self._acyclic:
-            visited = set()
+        # cycle detection
+        visited = set()
 
-            for parent in parents:
-                if self.is_ancestor(parent, name, visited=visited):
-                    raise ValueError(parent)
-                elif parent == name:
-                    raise ValueError(parent)
+        for parent in parents:
+            if self.ancestor_of(parent, name, visited=visited):
+                raise ValueError(parent)
+            elif parent == name:
+                raise ValueError(parent)
 
         # Node safe to add
-
         if is_stub:
             self._stubs.remove(name)
 
         if parents:
             for parent_name in parents:
-                if parent_name == name:  # cycle
-                    node.children.add(name)
-                else:
-                    parent_node = self._nodes.get(parent_name)
+                parent_node = self._nodes.get(parent_name)
 
-                    if parent_node is not None:
-                        parent_node.children.add(name)
-                    else:  # add stub
-                        self._nodes[parent_name] = Node(
-                            name=parent_name,
-                            children=set((name,)),
-                            parents=frozenset(),
-                        )
-                        self._stubs.add(parent_name)
+                if parent_node is not None:
+                    parent_node.children.add(name)
+                else:  # add stub
+                    self._nodes[parent_name] = Node(
+                        name=parent_name,
+                        children=set((name,)),
+                        parents=frozenset(),
+                    )
+                    self._stubs.add(parent_name)
         else:
             self._roots.add(name)
 
         self._nodes[name] = node
 
-    def remove_node(self, name, remove_children=False,
-                    transitive_parents=True):
+    def remove(self, name, strategy=Strategy.promote):
         """
         Remove a node from the graph. Returns the set of nodes that were
         removed.
@@ -95,11 +90,13 @@ class DirectedGraph(object):
         If the node doesn't exist, an exception will be raised.
 
         name: The name of the node to remove.
-        remove_children: (optional, False) Whether to recursively remove
-            any children of the node.
-        transitive_parents: (optional, True) Whether to add the node's
-            parents to any of its children. This will only occur if
-            remove_children is False.
+        strategy: (Optional, Strategy.promote) What to do with children
+            or removed nodes. The options are:
+
+            orphan: remove the node from the child's set of parents.
+            promote: replace the node with the the node's parents in the
+                childs set of parents.
+            remove: recursively remove all children of the node.
         """
         removed = set()
 
@@ -109,25 +106,7 @@ class DirectedGraph(object):
             current = stack.pop()
             node = self._nodes.pop(current)
 
-            for parent_name in node.parents:
-                if parent_name != name:
-                    parent_node = self._nodes[parent_name]
-
-                    parent_node.children.remove(current)
-
-                    if (parent_name in self._stubs and not parent_node.children
-                            and not (not remove_children and transitive_parents
-                                     and node.children)):
-                        stack.append(parent_name)
-
-            if current in self._stubs:
-                self._stubs.remove(current)
-            elif current in self._roots:
-                self._roots.remove(current)
-
-            removed.add(current)
-
-            if remove_children:
+            if strategy == Strategy.remove:
                 for child_name in node.children:
                     child_node = self._nodes[child_name]
 
@@ -136,21 +115,34 @@ class DirectedGraph(object):
                     stack.append(child_name)
             else:
                 for child_name in node.children:
-                    if child_name != current:
-                        child_node = self._nodes[child_name]
+                    child_node = self._nodes[child_name]
 
-                        child_node.parents.remove(current)
+                    child_node.parents.remove(current)
 
-                        if transitive_parents:
-                            for parent_name in node.parents:
-                                if parent_name != current:
-                                    parent_node = self._nodes[parent_name]
+                    if strategy == Strategy.promote:
+                        for parent_name in node.parents:
+                            parent_node = self._nodes[parent_name]
 
-                                    parent_node.children.add(child_name)
-                                    child_node.parents.add(parent_name)
+                            parent_node.children.add(child_name)
+                            child_node.parents.add(parent_name)
 
-                        if not child_node.parents:
-                            self._roots.add(child_name)
+                    if not child_node.parents:
+                        self._roots.add(child_name)
+
+            if current in self._stubs:
+                self._stubs.remove(current)
+            elif current in self._roots:
+                self._roots.remove(current)
+            else:  # stubs and roots (by definition) don't have parents
+                for parent_name in node.parents:
+                    parent_node = self._nodes[parent_name]
+
+                    parent_node.children.remove(current)
+
+                    if parent_name in self._stubs and not parent_node.children:
+                        stack.append(parent_name)
+
+            removed.add(current)
 
         return removed
 
@@ -168,7 +160,7 @@ class DirectedGraph(object):
         """
         return frozenset(self._roots)
 
-    def get_children(self, name):
+    def children(self, name):
         """
         Get the set of children a node has.
 
@@ -178,7 +170,7 @@ class DirectedGraph(object):
         """
         return frozenset(self._nodes[name].children)
 
-    def get_parents(self, name):
+    def parents(self, name):
         """
         Get the set of parents a node has.
 
@@ -188,7 +180,7 @@ class DirectedGraph(object):
         """
         return frozenset(self._nodes[name].parents)
 
-    def is_ancestor(self, name, ancestor, visited=None):
+    def ancestor_of(self, name, ancestor, visited=None):
         """
         Check whether a node has another node as an ancestor.
 
@@ -236,7 +228,7 @@ class DirectedGraph(object):
         stubs = frozenset(self._stubs)
 
         for stub in stubs:
-            pruned.update(self.remove_node(stub, remove_children=True))
+            pruned.update(self.remove(stub, strategy=Strategy.remove))
 
         return pruned - stubs  # we're only returning actual nodes
 
@@ -250,7 +242,7 @@ class DirectedGraph(object):
         """
         Equality checking
         """
-        if not isinstance(other, DirectedGraph):
+        if not isinstance(other, Graph):
             return NotImplemented
 
         return self._nodes == other._nodes and self._stubs == other._stubs
@@ -259,7 +251,7 @@ class DirectedGraph(object):
         """
         Inequality checking
         """
-        if not isinstance(other, DirectedGraph):
+        if not isinstance(other, Graph):
             return NotImplemented
 
         return not (self == other)

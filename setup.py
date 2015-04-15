@@ -21,11 +21,11 @@ setup(
     ),
 
     install_requires=(
+        'enum34',
         'futures',
     ),
 
     tests_require=(
-        'asyncio',
         'coverage',
         'nose',
         'python-coveralls',

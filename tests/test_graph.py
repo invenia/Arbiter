@@ -4,57 +4,28 @@ Tests for the graph module.
 from nose.tools import assert_equals, assert_true, assert_false, assert_raises
 
 
-def test_add_node():
+def test_add():
     """
-    add a node to a DirectedGraph
+    add a node to a Graph
     """
-    from arbiter.graph import DirectedGraph
+    from arbiter.graph import Graph
 
-    graph = DirectedGraph()
+    graph = Graph()
 
     assert_equals(graph.nodes, frozenset())
     assert_equals(graph.roots, frozenset())
     assert_false('foo' in graph)
 
-    graph.add_node('foo')
+    graph.add('foo')
 
     assert_equals(graph.nodes, frozenset(('foo',)))
     assert_equals(graph.roots, frozenset(('foo',)))
     assert_true('foo' in graph)
-    assert_equals(graph.get_children('foo'), frozenset())
-    assert_equals(graph.get_parents('foo'), frozenset())
-    assert_false(graph.is_ancestor('foo', 'foo'))
+    assert_equals(graph.children('foo'), frozenset())
+    assert_equals(graph.parents('foo'), frozenset())
+    assert_false(graph.ancestor_of('foo', 'foo'))
 
-    graph.add_node('bar', ('foo', 'baz'))
-
-    assert_equals(graph.nodes, frozenset(('foo', 'bar', 'baz')))
-    assert_equals(graph.roots, frozenset(('foo',)))
-
-    assert_true('foo' in graph)
-    assert_true('bar' in graph)
-    assert_true('baz' in graph)
-
-    assert_equals(graph.get_children('foo'), frozenset(('bar',)))
-    assert_equals(graph.get_children('bar'), frozenset())
-    assert_equals(graph.get_children('baz'), frozenset(('bar',)))
-
-    assert_equals(graph.get_parents('foo'), frozenset())
-    assert_equals(graph.get_parents('bar'), frozenset(('foo', 'baz')))
-    assert_equals(graph.get_parents('baz'), frozenset())
-
-    assert_false(graph.is_ancestor('foo', 'foo'))
-    assert_false(graph.is_ancestor('foo', 'bar'))
-    assert_false(graph.is_ancestor('foo', 'baz'))
-
-    assert_true(graph.is_ancestor('bar', 'foo'))
-    assert_false(graph.is_ancestor('bar', 'bar'))
-    assert_true(graph.is_ancestor('bar', 'baz'))
-
-    assert_false(graph.is_ancestor('baz', 'foo'))
-    assert_false(graph.is_ancestor('baz', 'bar'))
-    assert_false(graph.is_ancestor('baz', 'baz'))
-
-    graph.add_node('baz', ('bar',))
+    graph.add('bar', ('foo', 'baz'))
 
     assert_equals(graph.nodes, frozenset(('foo', 'bar', 'baz')))
     assert_equals(graph.roots, frozenset(('foo',)))
@@ -63,403 +34,299 @@ def test_add_node():
     assert_true('bar' in graph)
     assert_true('baz' in graph)
 
-    assert_equals(graph.get_children('foo'), frozenset(('bar',)))
-    assert_equals(graph.get_children('bar'), frozenset(('baz',)))
-    assert_equals(graph.get_children('baz'), frozenset(('bar',)))
+    assert_equals(graph.children('foo'), frozenset(('bar',)))
+    assert_equals(graph.children('bar'), frozenset())
+    assert_equals(graph.children('baz'), frozenset(('bar',)))
 
-    assert_equals(graph.get_parents('foo'), frozenset())
-    assert_equals(graph.get_parents('bar'), frozenset(('foo', 'baz')))
-    assert_equals(graph.get_parents('baz'), frozenset(('bar',)))
+    assert_equals(graph.parents('foo'), frozenset())
+    assert_equals(graph.parents('bar'), frozenset(('foo', 'baz')))
+    assert_equals(graph.parents('baz'), frozenset())
 
-    assert_false(graph.is_ancestor('foo', 'foo'))
-    assert_false(graph.is_ancestor('foo', 'bar'))
-    assert_false(graph.is_ancestor('foo', 'baz'))
+    assert_false(graph.ancestor_of('foo', 'foo'))
+    assert_false(graph.ancestor_of('foo', 'bar'))
+    assert_false(graph.ancestor_of('foo', 'baz'))
 
-    assert_true(graph.is_ancestor('bar', 'foo'))
-    assert_true(graph.is_ancestor('bar', 'bar'))
-    assert_true(graph.is_ancestor('bar', 'baz'))
+    assert_true(graph.ancestor_of('bar', 'foo'))
+    assert_false(graph.ancestor_of('bar', 'bar'))
+    assert_true(graph.ancestor_of('bar', 'baz'))
 
-    assert_true(graph.is_ancestor('baz', 'foo'))
-    assert_true(graph.is_ancestor('baz', 'bar'))
-    assert_true(graph.is_ancestor('baz', 'baz'))
+    assert_false(graph.ancestor_of('baz', 'foo'))
+    assert_false(graph.ancestor_of('baz', 'bar'))
+    assert_false(graph.ancestor_of('baz', 'baz'))
 
-    graph.add_node('ouroboros', ('ouroboros',))
-
-    assert_equals(graph.nodes, frozenset(('foo', 'bar', 'baz', 'ouroboros')))
-    assert_equals(graph.roots, frozenset(('foo',)))
-
-    assert_true('ouroboros' in graph)
-    assert_equals(graph.get_children('ouroboros'), frozenset(('ouroboros',)))
-    assert_equals(graph.get_parents('ouroboros'), frozenset(('ouroboros',)))
-    assert_true(graph.is_ancestor('ouroboros', 'ouroboros'))
-
-    assert_raises(ValueError, graph.add_node, 'foo')
-
-
-def test_add_node_acyclic():
-    """
-    add a node to an acyclic DirectedGraph
-    """
-    from arbiter.graph import DirectedGraph
-
-    graph = DirectedGraph(acyclic=True)
-
-    assert_equals(graph.nodes, frozenset())
-    assert_equals(graph.roots, frozenset())
-    assert_false('foo' in graph)
-
-    graph.add_node('foo')
-
-    assert_equals(graph.nodes, frozenset(('foo',)))
-    assert_equals(graph.roots, frozenset(('foo',)))
-    assert_true('foo' in graph)
-    assert_equals(graph.get_children('foo'), frozenset())
-    assert_equals(graph.get_parents('foo'), frozenset())
-    assert_false(graph.is_ancestor('foo', 'foo'))
-
-    graph.add_node('bar', ('foo', 'baz'))
-
-    assert_equals(graph.nodes, frozenset(('foo', 'bar', 'baz')))
-    assert_equals(graph.roots, frozenset(('foo',)))
-
-    assert_true('foo' in graph)
-    assert_true('bar' in graph)
-    assert_true('baz' in graph)
-
-    assert_equals(graph.get_children('foo'), frozenset(('bar',)))
-    assert_equals(graph.get_children('bar'), frozenset())
-    assert_equals(graph.get_children('baz'), frozenset(('bar',)))
-
-    assert_equals(graph.get_parents('foo'), frozenset())
-    assert_equals(graph.get_parents('bar'), frozenset(('foo', 'baz')))
-    assert_equals(graph.get_parents('baz'), frozenset())
-
-    assert_false(graph.is_ancestor('foo', 'foo'))
-    assert_false(graph.is_ancestor('foo', 'bar'))
-    assert_false(graph.is_ancestor('foo', 'baz'))
-
-    assert_true(graph.is_ancestor('bar', 'foo'))
-    assert_false(graph.is_ancestor('bar', 'bar'))
-    assert_true(graph.is_ancestor('bar', 'baz'))
-
-    assert_false(graph.is_ancestor('baz', 'foo'))
-    assert_false(graph.is_ancestor('baz', 'bar'))
-    assert_false(graph.is_ancestor('baz', 'baz'))
-
-    assert_raises(ValueError, graph.add_node, 'baz', ('bar',))
-    assert_raises(ValueError, graph.add_node, 'ouroboros', ('ouroboros',))
-    assert_raises(ValueError, graph.add_node, 'foo')
+    assert_raises(ValueError, graph.add, 'baz', ('bar',))
+    assert_raises(ValueError, graph.add, 'ouroboros', ('ouroboros',))
+    assert_raises(ValueError, graph.add, 'foo')
 
     assert_equals(graph.nodes, frozenset(('foo', 'bar', 'baz')))
     assert_equals(graph.roots, frozenset(('foo',)))
 
 
-def test_remove_node():
+def test_remove_orphan():
     """
-    Remove a node from a DirectedGraph
+    Remove a node from a Graph
     """
-    from arbiter.graph import DirectedGraph
+    from arbiter.graph import Graph, Strategy
 
-    graph = DirectedGraph()
+    graph = Graph()
 
-    graph.add_node('node')
-    graph.add_node('bar', ('foo',))
-    graph.add_node('baz', ('bar',))
-    graph.add_node('beta', ('alpha',))
-    graph.add_node('bravo', ('alpha',))
-    graph.add_node('tick', ('tock',))
-    graph.add_node('tock', ('tick',))
+    graph.add('node')
+    graph.add('bar', ('foo',))
+    graph.add('baz', ('bar',))
+    graph.add('beta', ('alpha',))
+    graph.add('bravo', ('alpha',))
 
     assert_equals(
         graph.nodes,
         frozenset(
-            ('node', 'foo', 'bar', 'baz', 'alpha', 'beta',
-             'bravo', 'tick', 'tock')
+            ('node', 'foo', 'bar', 'baz', 'alpha', 'beta', 'bravo')
         )
     )
     assert_equals(graph.roots, frozenset(('node',)))
 
     # node with no children/parents
-    assert_equals(graph.remove_node('node'), frozenset(('node',)))
+    assert_equals(
+        graph.remove('node', strategy=Strategy.orphan),
+        frozenset(('node',))
+    )
 
     assert_equals(
         graph.nodes,
         frozenset(
-            ('foo', 'bar', 'baz', 'alpha', 'beta', 'bravo', 'tick', 'tock')
+            ('foo', 'bar', 'baz', 'alpha', 'beta', 'bravo')
         )
     )
     assert_equals(graph.roots, frozenset())
 
     # node with child, unique stub parent
     assert_equals(
-        graph.remove_node('bar', transitive_parents=False),
+        graph.remove('bar', strategy=Strategy.orphan),
         frozenset(('bar', 'foo'))
     )
 
     assert_equals(
         graph.nodes,
         frozenset(
-            ('baz', 'alpha', 'beta', 'bravo', 'tick', 'tock')
+            ('baz', 'alpha', 'beta', 'bravo')
         )
     )
     assert_equals(graph.roots, frozenset(('baz',)))
 
     # node with non-unique stub parent
-    assert_equals(graph.remove_node('bravo'), frozenset(('bravo',)))
+    assert_equals(
+        graph.remove('bravo', strategy=Strategy.orphan),
+        frozenset(('bravo',))
+    )
 
     assert_equals(
         graph.nodes,
         frozenset(
-            ('baz', 'alpha', 'beta', 'tick', 'tock')
+            ('baz', 'alpha', 'beta',)
         )
     )
     assert_equals(graph.roots, frozenset(('baz',)))
 
     # stub
-    assert_equals(graph.remove_node('alpha'), frozenset(('alpha',)))
+    assert_equals(
+        graph.remove('alpha', strategy=Strategy.orphan),
+        frozenset(('alpha',))
+    )
 
     assert_equals(
         graph.nodes,
         frozenset(
-            ('baz', 'beta', 'tick', 'tock')
+            ('baz', 'beta')
         )
     )
     assert_equals(graph.roots, frozenset(('baz', 'beta')))
 
-    # cycle
-    assert_equals(
-        graph.remove_node('tock', transitive_parents=False),
-        frozenset(('tock',))
-    )
-
-    assert_equals(
-        graph.nodes,
-        frozenset(
-            ('baz', 'beta', 'tick')
-        )
-    )
-    assert_equals(graph.roots, frozenset(('baz', 'beta', 'tick')))
-
-    assert_equals(graph.get_parents('tick'), frozenset())
-    assert_equals(graph.get_children('tick'), frozenset())
-
-    assert_raises(KeyError, graph.remove_node, 'fake')
+    assert_raises(KeyError, graph.remove, 'fake')
 
 
-def test_remove_node_transitively():
+def test_remove_promote():
     """
     Remove a node (transitively making its parents its children's
-    parents) from a DirectedGraph.
+    parents) from a Graph.
     """
-    from arbiter.graph import DirectedGraph
+    from arbiter.graph import Graph
 
-    graph = DirectedGraph()
+    graph = Graph()
 
-    graph.add_node('ouroboros', ('ouroboros',))
-    graph.add_node('son of ouroboros', ('ouroboros',))
-    graph.add_node('tick', ('tock',))
-    graph.add_node('tock', ('tick',))
-    graph.add_node('aye')
-    graph.add_node('insect')
-    graph.add_node('bee', ('aye', 'insect'))
-    graph.add_node('cee', ('bee',))
-    graph.add_node('child', ('stub',))
-    graph.add_node('grandchild', ('child',))
+    graph.add('aye')
+    graph.add('insect')
+    graph.add('bee', ('aye', 'insect'))
+    graph.add('cee', ('bee',))
+    graph.add('child', ('stub', 'stub2'))
+    graph.add('grandchild', ('child',))
 
     assert_equals(
         graph.nodes,
         frozenset(
             (
-                'ouroboros', 'son of ouroboros', 'tick', 'tock', 'aye',
-                'insect', 'bee', 'cee', 'child', 'stub', 'grandchild',
+                'aye', 'insect', 'bee', 'cee', 'child', 'stub', 'stub2',
+                'grandchild',
             )
         )
     )
 
     assert_equals(graph.roots, frozenset(('aye', 'insect')))
 
-    # don't pass yourself to children
-    assert_equals(graph.remove_node('ouroboros'), frozenset(('ouroboros',)))
-    assert_equals(
-        graph.nodes,
-        frozenset(
-            (
-                'son of ouroboros', 'tick', 'tock', 'aye',
-                'insect', 'bee', 'cee', 'child', 'stub', 'grandchild',
-            )
-        )
-    )
-
-    assert_equals(
-        graph.roots,
-        frozenset(('son of ouroboros', 'aye', 'insect'))
-    )
-
-    # pass a child to themselves
-    assert_equals(graph.remove_node('tock'), frozenset(('tock',)))
-    assert_equals(
-        graph.nodes,
-        frozenset(
-            (
-                'son of ouroboros', 'tick', 'aye',
-                'insect', 'bee', 'cee', 'child', 'stub', 'grandchild',
-            )
-        )
-    )
-
-    assert_equals(
-        graph.roots,
-        frozenset(('son of ouroboros', 'aye', 'insect'))
-    )
-
-    assert_equals(graph.get_children('tick'), frozenset(('tick',)))
-    assert_equals(graph.get_parents('tick'), frozenset(('tick',)))
-
     # two new parents
-    assert_equals(graph.remove_node('bee'), frozenset(('bee',)))
+    assert_equals(graph.remove('bee'), frozenset(('bee',)))
     assert_equals(
         graph.nodes,
         frozenset(
             (
-                'son of ouroboros', 'tick', 'aye',
-                'insect', 'cee', 'child', 'stub', 'grandchild',
+                'aye', 'insect', 'cee', 'child', 'stub', 'stub2', 'grandchild',
             )
         )
     )
 
     assert_equals(
         graph.roots,
-        frozenset(('son of ouroboros', 'aye', 'insect'))
+        frozenset(('aye', 'insect'))
     )
 
-    assert_equals(graph.get_children('aye'), frozenset(('cee',)))
-    assert_equals(graph.get_children('insect'), frozenset(('cee',)))
-    assert_equals(graph.get_parents('cee'), frozenset(('aye', 'insect')))
+    assert_equals(graph.children('aye'), frozenset(('cee',)))
+    assert_equals(graph.children('insect'), frozenset(('cee',)))
+    assert_equals(graph.parents('cee'), frozenset(('aye', 'insect')))
 
     # now with stubs
-    assert_equals(graph.remove_node('child'), frozenset(('child',)))
+    assert_equals(graph.remove('child'), frozenset(('child',)))
     assert_equals(
         graph.nodes,
         frozenset(
             (
-                'son of ouroboros', 'tick', 'aye',
-                'insect', 'cee', 'stub', 'grandchild',
+                'aye', 'insect', 'cee', 'stub', 'stub2', 'grandchild',
             )
         )
     )
 
     assert_equals(
         graph.roots,
-        frozenset(('son of ouroboros', 'aye', 'insect'))
+        frozenset(('aye', 'insect'))
     )
 
-    assert_equals(graph.get_children('stub'), frozenset(('grandchild',)))
-    assert_equals(graph.get_parents('grandchild'), frozenset(('stub',)))
+    assert_equals(graph.children('stub'), frozenset(('grandchild',)))
+    assert_equals(graph.children('stub2'), frozenset(('grandchild',)))
+    assert_equals(
+        graph.parents('grandchild'),
+        frozenset(('stub', 'stub2'))
+    )
+
+    # delete a stub
+    assert_equals(graph.remove('stub2'), frozenset(('stub2',)))
+    assert_equals(
+        graph.nodes,
+        frozenset(
+            (
+                'aye', 'insect', 'cee', 'stub', 'grandchild',
+            )
+        )
+    )
+
+    assert_equals(
+        graph.roots,
+        frozenset(('aye', 'insect'))
+    )
+
+    assert_equals(graph.children('stub'), frozenset(('grandchild',)))
+    assert_equals(graph.parents('grandchild'), frozenset(('stub',)))
 
 
-def test_remove_node_and_children():
+def test_remove_remove():
     """
-    Remove a node (and its children) from a DirectedGraph
+    Remove a node (and its children) from a Graph
     """
-    from arbiter.graph import DirectedGraph
+    from arbiter.graph import Graph, Strategy
 
-    graph = DirectedGraph()
+    graph = Graph()
 
-    graph.add_node('node')
-    graph.add_node('bar', ('foo',))
-    graph.add_node('baz', ('bar',))
-    graph.add_node('beta', ('alpha',))
-    graph.add_node('bravo', ('alpha',))
-    graph.add_node('tick', ('tock',))
-    graph.add_node('tock', ('tick',))
+    graph.add('node')
+    graph.add('bar', ('foo',))
+    graph.add('baz', ('bar',))
+    graph.add('beta', ('alpha',))
+    graph.add('bravo', ('alpha',))
 
     assert_equals(
         graph.nodes,
         frozenset(
-            ('node', 'foo', 'bar', 'baz', 'alpha', 'beta',
-             'bravo', 'tick', 'tock')
+            ('node', 'foo', 'bar', 'baz', 'alpha', 'beta', 'bravo')
         )
     )
     assert_equals(graph.roots, frozenset(('node',)))
 
     # node with no children/parents
-    assert_equals(graph.remove_node('node', True), frozenset(('node',)))
+    assert_equals(
+        graph.remove('node', strategy=Strategy.remove),
+        frozenset(('node',))
+    )
 
     assert_equals(
         graph.nodes,
         frozenset(
-            ('foo', 'bar', 'baz', 'alpha', 'beta', 'bravo', 'tick', 'tock')
+            ('foo', 'bar', 'baz', 'alpha', 'beta', 'bravo')
         )
     )
     assert_equals(graph.roots, frozenset())
 
     # node with child, unique stub parent
     assert_equals(
-        graph.remove_node('bar', True),
+        graph.remove('bar', strategy=Strategy.remove),
         frozenset(('bar', 'foo', 'baz'))
     )
 
     assert_equals(
         graph.nodes,
         frozenset(
-            ('alpha', 'beta', 'bravo', 'tick', 'tock')
+            ('alpha', 'beta', 'bravo')
         )
     )
     assert_equals(graph.roots, frozenset())
 
     # node with non-unique stub parent
-    assert_equals(graph.remove_node('bravo'), frozenset(('bravo',)))
+    assert_equals(graph.remove('bravo'), frozenset(('bravo',)))
 
     assert_equals(
         graph.nodes,
         frozenset(
-            ('alpha', 'beta', 'tick', 'tock')
+            ('alpha', 'beta')
         )
     )
     assert_equals(graph.roots, frozenset())
 
     # stub
     assert_equals(
-        graph.remove_node('alpha', True), frozenset(('alpha', 'beta'))
+        graph.remove('alpha', strategy=Strategy.remove),
+        frozenset(('alpha', 'beta'))
     )
 
     assert_equals(
         graph.nodes,
-        frozenset(
-            ('tick', 'tock')
-        )
+        frozenset()
     )
 
-    # cycle
-    assert_equals(graph.remove_node('tock', True), frozenset(('tock', 'tick')))
-
-    assert_equals(graph.nodes, frozenset())
-    assert_equals(graph.roots, frozenset())
-
-    assert_raises(KeyError, graph.remove_node, 'fake', True)
+    assert_raises(KeyError, graph.remove, 'fake', strategy=Strategy.remove)
 
 
 def test_prune():
     """
-    Prune a DirectedGraph
+    Prune a Graph
     """
-    from arbiter.graph import DirectedGraph
+    from arbiter.graph import Graph
 
-    graph = DirectedGraph()
+    graph = Graph()
 
-    graph.add_node('node')
-    graph.add_node('bar', ('foo',))
-    graph.add_node('baz', ('bar',))
-    graph.add_node('beta', ('alpha',))
-    graph.add_node('bravo', ('alpha',))
-    graph.add_node('tick', ('tock',))
-    graph.add_node('tock', ('tick',))
+    graph.add('node')
+    graph.add('bar', ('foo',))
+    graph.add('baz', ('bar',))
+    graph.add('beta', ('alpha',))
+    graph.add('bravo', ('alpha',))
 
     assert_equals(
         graph.nodes,
         frozenset(
-            ('node', 'foo', 'bar', 'baz', 'alpha', 'beta',
-             'bravo', 'tick', 'tock')
+            ('node', 'foo', 'bar', 'baz', 'alpha', 'beta', 'bravo')
         )
     )
     assert_equals(graph.roots, frozenset(('node',)))
@@ -472,7 +339,7 @@ def test_prune():
     assert_equals(
         graph.nodes,
         frozenset(
-            ('node', 'tick', 'tock')
+            ('node',)
         )
     )
     assert_equals(graph.roots, frozenset(('node',)))
@@ -482,7 +349,7 @@ def test_prune():
     assert_equals(
         graph.nodes,
         frozenset(
-            ('node', 'tick', 'tock')
+            ('node',)
         )
     )
     assert_equals(graph.roots, frozenset(('node',)))
@@ -490,34 +357,34 @@ def test_prune():
 
 def test_equality():
     """
-    DirectedGraph equality
+    Graph equality
     """
-    from arbiter.graph import DirectedGraph
+    from arbiter.graph import Graph
 
-    graph = DirectedGraph()
+    graph = Graph()
 
     assert_false(graph == 1)
     assert_true(graph != 0)
 
-    other = DirectedGraph()
+    other = Graph()
 
     assert_true(graph == other)
     assert_false(graph != other)
 
-    graph.add_node('foo')
+    graph.add('foo')
 
     assert_false(graph == other)
     assert_true(graph != other)
 
-    graph.add_node('bar', ('foo',))
+    graph.add('bar', ('foo',))
 
-    other.add_node('bar', ('foo',))
+    other.add('bar', ('foo',))
 
     # still shouldn't match graph['foo'] is a stub
     assert_false(graph == other)
     assert_true(graph != other)
 
-    other.add_node('foo')
+    other.add('foo')
 
     assert_true(graph == other)
     assert_false(graph != other)
@@ -525,48 +392,48 @@ def test_equality():
 
 def test_naming():
     """
-    Names just need to be hashable.
+    Node names just need to be hashable.
     """
-    from arbiter.graph import DirectedGraph
+    from arbiter.graph import Graph, Strategy
 
-    graph = DirectedGraph()
+    graph = Graph()
 
     for name in (1, float('NaN'), 0, None, '', frozenset(), (), False, sum):
-        graph.add_node('child1', frozenset((name,)))
+        graph.add('child1', frozenset((name,)))
 
-        graph.add_node(name)
+        graph.add(name)
 
         assert_true(name in graph)
         assert_equals(graph.nodes, frozenset((name, 'child1')))
         assert_equals(graph.roots, frozenset((name,)))
-        assert_equals(graph.get_children(name), frozenset(('child1',)))
-        assert_equals(graph.get_parents(name), frozenset())
-        assert_false(graph.is_ancestor(name, name))
+        assert_equals(graph.children(name), frozenset(('child1',)))
+        assert_equals(graph.parents(name), frozenset())
+        assert_false(graph.ancestor_of(name, name))
 
-        graph.add_node('child2', frozenset((name,)))
+        graph.add('child2', frozenset((name,)))
         assert_equals(
-            graph.get_children(name),
+            graph.children(name),
             frozenset(('child1', 'child2'))
         )
 
-        graph.remove_node(name)
-        graph.remove_node('child1')
-        graph.remove_node('child2')
+        graph.remove(name)
+        graph.remove('child1')
+        graph.remove('child2')
 
         assert_equals(graph.nodes, frozenset())
 
-    graph.add_node(None)
-    graph.add_node('', parents=((),))
-    graph.add_node((), parents=(frozenset(),))
-    graph.add_node(frozenset())
+    graph.add(None)
+    graph.add('', parents=((),))
+    graph.add((), parents=(frozenset(),))
+    graph.add(frozenset())
 
     assert_equals(graph.nodes, frozenset((None, '', (), frozenset())))
     assert_equals(graph.roots, frozenset((None, frozenset())))
 
-    graph.remove_node((), remove_children=True)
+    graph.remove((), strategy=Strategy.remove)
 
     assert_equals(graph.nodes, frozenset((None, frozenset())))
     assert_equals(graph.roots, frozenset((None, frozenset())))
 
-    assert_raises(TypeError, graph.add_node, [])
-    assert_raises(TypeError, graph.add_node, 'valid', parents=([],))
+    assert_raises(TypeError, graph.add, [])
+    assert_raises(TypeError, graph.add, 'valid', parents=([],))

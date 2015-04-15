@@ -3,7 +3,7 @@ The dependency scheduler.
 """
 from collections import Hashable
 
-from arbiter.graph import DirectedGraph
+from arbiter.graph import Graph, Strategy
 
 
 __all__ = ('Scheduler',)
@@ -20,7 +20,7 @@ class Scheduler(object):
         if failed is None:
             failed = set()
 
-        self._graph = DirectedGraph(acyclic=True)
+        self._graph = Graph()
         self._tasks = {}
         self._running = set()
         self._completed = completed
@@ -88,7 +88,7 @@ class Scheduler(object):
                 incomplete_dependencies.add(dependency)
         else:  # task hasn't failed
             try:
-                self._graph.add_node(task.name, incomplete_dependencies)
+                self._graph.add(task.name, incomplete_dependencies)
             except ValueError:
                 self._cascade_failure(task.name)
 
@@ -131,7 +131,7 @@ class Scheduler(object):
 
         if success:
             self._completed.add(name)
-            self._graph.remove_node(name, remove_children=False)
+            self._graph.remove(name, strategy=Strategy.orphan)
         else:
             self._cascade_failure(name)
 
@@ -147,7 +147,7 @@ class Scheduler(object):
         failed.
         """
         self._failed.update(self._graph.nodes)
-        self._graph = DirectedGraph(acyclic=True)
+        self._graph = Graph()
         self._running = set()
 
     def _cascade_failure(self, name):
@@ -158,7 +158,7 @@ class Scheduler(object):
         """
         if name in self._graph:
             self._failed.update(
-                self._graph.remove_node(name, remove_children=True)
+                self._graph.remove(name, strategy=Strategy.remove)
             )
         else:
             self._failed.add(name)
