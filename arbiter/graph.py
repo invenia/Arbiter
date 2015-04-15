@@ -52,7 +52,7 @@ class Graph(object):
         visited = set()
 
         for parent in parents:
-            if self.is_ancestor(parent, name, visited=visited):
+            if self.ancestor_of(parent, name, visited=visited):
                 raise ValueError(parent)
             elif parent == name:
                 raise ValueError(parent)
@@ -156,7 +156,7 @@ class Graph(object):
         """
         return frozenset(self._roots)
 
-    def get_children(self, name):
+    def children(self, name):
         """
         Get the set of children a node has.
 
@@ -166,7 +166,7 @@ class Graph(object):
         """
         return frozenset(self._nodes[name].children)
 
-    def get_parents(self, name):
+    def parents(self, name):
         """
         Get the set of parents a node has.
 
@@ -176,7 +176,7 @@ class Graph(object):
         """
         return frozenset(self._nodes[name].parents)
 
-    def is_ancestor(self, name, ancestor, visited=None):
+    def ancestor_of(self, name, ancestor, visited=None):
         """
         Check whether a node has another node as an ancestor.
 

@@ -21,9 +21,9 @@ def test_add():
     assert_equals(graph.nodes, frozenset(('foo',)))
     assert_equals(graph.roots, frozenset(('foo',)))
     assert_true('foo' in graph)
-    assert_equals(graph.get_children('foo'), frozenset())
-    assert_equals(graph.get_parents('foo'), frozenset())
-    assert_false(graph.is_ancestor('foo', 'foo'))
+    assert_equals(graph.children('foo'), frozenset())
+    assert_equals(graph.parents('foo'), frozenset())
+    assert_false(graph.ancestor_of('foo', 'foo'))
 
     graph.add('bar', ('foo', 'baz'))
 
@@ -34,25 +34,25 @@ def test_add():
     assert_true('bar' in graph)
     assert_true('baz' in graph)
 
-    assert_equals(graph.get_children('foo'), frozenset(('bar',)))
-    assert_equals(graph.get_children('bar'), frozenset())
-    assert_equals(graph.get_children('baz'), frozenset(('bar',)))
+    assert_equals(graph.children('foo'), frozenset(('bar',)))
+    assert_equals(graph.children('bar'), frozenset())
+    assert_equals(graph.children('baz'), frozenset(('bar',)))
 
-    assert_equals(graph.get_parents('foo'), frozenset())
-    assert_equals(graph.get_parents('bar'), frozenset(('foo', 'baz')))
-    assert_equals(graph.get_parents('baz'), frozenset())
+    assert_equals(graph.parents('foo'), frozenset())
+    assert_equals(graph.parents('bar'), frozenset(('foo', 'baz')))
+    assert_equals(graph.parents('baz'), frozenset())
 
-    assert_false(graph.is_ancestor('foo', 'foo'))
-    assert_false(graph.is_ancestor('foo', 'bar'))
-    assert_false(graph.is_ancestor('foo', 'baz'))
+    assert_false(graph.ancestor_of('foo', 'foo'))
+    assert_false(graph.ancestor_of('foo', 'bar'))
+    assert_false(graph.ancestor_of('foo', 'baz'))
 
-    assert_true(graph.is_ancestor('bar', 'foo'))
-    assert_false(graph.is_ancestor('bar', 'bar'))
-    assert_true(graph.is_ancestor('bar', 'baz'))
+    assert_true(graph.ancestor_of('bar', 'foo'))
+    assert_false(graph.ancestor_of('bar', 'bar'))
+    assert_true(graph.ancestor_of('bar', 'baz'))
 
-    assert_false(graph.is_ancestor('baz', 'foo'))
-    assert_false(graph.is_ancestor('baz', 'bar'))
-    assert_false(graph.is_ancestor('baz', 'baz'))
+    assert_false(graph.ancestor_of('baz', 'foo'))
+    assert_false(graph.ancestor_of('baz', 'bar'))
+    assert_false(graph.ancestor_of('baz', 'baz'))
 
     assert_raises(ValueError, graph.add, 'baz', ('bar',))
     assert_raises(ValueError, graph.add, 'ouroboros', ('ouroboros',))
@@ -187,9 +187,9 @@ def test_remove_transitively():
         frozenset(('aye', 'insect'))
     )
 
-    assert_equals(graph.get_children('aye'), frozenset(('cee',)))
-    assert_equals(graph.get_children('insect'), frozenset(('cee',)))
-    assert_equals(graph.get_parents('cee'), frozenset(('aye', 'insect')))
+    assert_equals(graph.children('aye'), frozenset(('cee',)))
+    assert_equals(graph.children('insect'), frozenset(('cee',)))
+    assert_equals(graph.parents('cee'), frozenset(('aye', 'insect')))
 
     # now with stubs
     assert_equals(graph.remove('child'), frozenset(('child',)))
@@ -207,10 +207,10 @@ def test_remove_transitively():
         frozenset(('aye', 'insect'))
     )
 
-    assert_equals(graph.get_children('stub'), frozenset(('grandchild',)))
-    assert_equals(graph.get_children('stub2'), frozenset(('grandchild',)))
+    assert_equals(graph.children('stub'), frozenset(('grandchild',)))
+    assert_equals(graph.children('stub2'), frozenset(('grandchild',)))
     assert_equals(
-        graph.get_parents('grandchild'),
+        graph.parents('grandchild'),
         frozenset(('stub', 'stub2'))
     )
 
@@ -230,8 +230,8 @@ def test_remove_transitively():
         frozenset(('aye', 'insect'))
     )
 
-    assert_equals(graph.get_children('stub'), frozenset(('grandchild',)))
-    assert_equals(graph.get_parents('grandchild'), frozenset(('stub',)))
+    assert_equals(graph.children('stub'), frozenset(('grandchild',)))
+    assert_equals(graph.parents('grandchild'), frozenset(('stub',)))
 
 
 def test_remove_and_children():
@@ -406,13 +406,13 @@ def test_naming():
         assert_true(name in graph)
         assert_equals(graph.nodes, frozenset((name, 'child1')))
         assert_equals(graph.roots, frozenset((name,)))
-        assert_equals(graph.get_children(name), frozenset(('child1',)))
-        assert_equals(graph.get_parents(name), frozenset())
-        assert_false(graph.is_ancestor(name, name))
+        assert_equals(graph.children(name), frozenset(('child1',)))
+        assert_equals(graph.parents(name), frozenset())
+        assert_false(graph.ancestor_of(name, name))
 
         graph.add('child2', frozenset((name,)))
         assert_equals(
-            graph.get_children(name),
+            graph.children(name),
             frozenset(('child1', 'child2'))
         )
 
