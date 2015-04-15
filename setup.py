@@ -26,7 +26,6 @@ setup(
     ),
 
     tests_require=(
-        'asyncio',
         'coverage',
         'nose',
         'python-coveralls',
