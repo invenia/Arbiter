@@ -61,7 +61,6 @@ class Graph(object):
                 raise ValueError(parent)
 
         # Node safe to add
-
         if is_stub:
             self._stubs.remove(name)
 
