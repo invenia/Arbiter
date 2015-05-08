@@ -8,6 +8,13 @@ env:
   - TOXENV=pypy
   - TOXENV=pypy3
   - TOXENV=flake8
+matrix:
+  allow_failures:
+    # Currently, allowing pypy3 and py35 to fail
+    # cause travis doesn't seem to support them properly by default.
+    - env: TOXENV=pypy3
+    - env: TOXENV=py35
+  fast_finish: true
 install:
   - travis_retry pip install tox==1.6.1
 script:
