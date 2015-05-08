@@ -157,7 +157,7 @@ def test_retry():
         """
         return lambda: executed_tasks.add(name) or responses.pop(0)
 
-    def make_task(name, dependencies=(), responses=None, retries=0):
+    def make_task(name, dependencies=(), responses=None, retries=0, delay=0):
         """
         Make a task.
         """
@@ -169,6 +169,7 @@ def test_retry():
             function=retrier(name, responses),
             dependencies=dependencies,
             retries=retries,
+            delay=delay,
         )
 
     # baz - passes by using a retry which returns True,
@@ -178,12 +179,12 @@ def test_retry():
         (
             make_task('foo'),
             make_task('bar', ('foo',)),
-            make_task('baz', ('bar',), [False, True], 1),
+            make_task('baz', ('bar',), [False, True], 1, 0.25),
             make_task('qux', ('baz',)),
             make_task('bell', ('bar',)),
             make_task('alugosi', ('bell',), [False, True]),
             make_task('lorem'),
-            make_task('ipsum', ('lorem',), [False, False], 1),
+            make_task('ipsum', ('lorem',), [False, False], 1, 0.25),
             make_task('ouroboros', ('ouroboros',)),
             make_task('tick', ('tock',)),
             make_task('tock', ('tick',)),

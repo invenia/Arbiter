@@ -2,8 +2,10 @@
 The dependency scheduler.
 """
 from collections import Hashable
+from datetime import datetime
 
 from arbiter.graph import Graph, Strategy
+from arbiter.utils import timedelta_to_seconds
 
 
 __all__ = ('Scheduler',)
@@ -55,8 +57,35 @@ class Scheduler(object):
     def runnable(self):
         """
         Get the set of tasks that are currently runnable.
+
+        NOTE: Probably shouldn't be a property anymore
         """
-        return self._graph.roots - self._running
+        runnable = set()
+        delays = set()
+
+        names = self._graph.roots - self._running
+        for name in names:
+            task = self._tasks[name]
+            delta = timedelta_to_seconds(
+                task.delay - (datetime.now() - task.timestamp)
+            )
+
+            if delta < 0:
+                runnable.add(name)
+                delta = 0
+
+            delays.add(delta)
+
+        self._min_delay = min(delays) if len(delays) > 0 else 0.0
+
+        return frozenset(runnable)
+
+    @property
+    def min_delay(self):
+        """
+        A float representing the minimum delay
+        """
+        return self._min_delay
 
     def is_finished(self):
         """
@@ -119,15 +148,16 @@ class Scheduler(object):
             exception if the task doesn't exist or isn't runnable). If
             no name is given, a task will be chosen arbitrarily
         """
+        runnable = self.runnable
+
         if name is None:
-            for possibility in self._graph.roots:
-                if possibility not in self._running:
-                    name = possibility
-                    break
+            for possibility in runnable:
+                name = possibility
+                break
             else:  # all tasks blocked/running/completed/failed
                 return None
         else:
-            if name not in self._graph.roots or name in self._running:
+            if name not in runnable:
                 raise ValueError(name)
 
         self._running.add(name)

@@ -2,11 +2,11 @@
 Task creation/generation
 """
 from collections import namedtuple
-
+from datetime import datetime, timedelta
 
 Task = namedtuple(
     'Task',
-    ('name', 'function', 'dependencies', 'retries', 'delay'),
+    ('name', 'function', 'dependencies', 'retries', 'delay', 'timestamp'),
 )
 
 
@@ -20,4 +20,11 @@ def create_task(name, function, dependencies=(), retries=0, delay=0):
     dependencies: (optional, ()) Any dependencies that this task relies
         on.
     """
-    return Task(name, function, frozenset(dependencies), retries, delay)
+    return Task(
+        name,
+        function,
+        frozenset(dependencies),
+        retries,
+        delay=timedelta(seconds=delay),
+        timestamp=datetime.now()
+    )

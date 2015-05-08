@@ -2,9 +2,11 @@
 The base task runner.
 """
 from collections import namedtuple
+from time import sleep
 
 from arbiter.scheduler import Scheduler
 from arbiter.task import create_task
+from arbiter.utils import timedelta_to_seconds
 
 Results = namedtuple('Results', ('completed', 'failed'))
 TaskResult = namedtuple('TaskResult', ('name', 'successful'))
@@ -39,7 +41,7 @@ def task_loop(tasks, execute, wait=None):
                             task.function,
                             task.dependencies,
                             task.retries - 1,
-                            task.delay
+                            timedelta_to_seconds(task.delay),
                         )
 
                         scheduler.remove_task(task.name)
@@ -52,5 +54,7 @@ def task_loop(tasks, execute, wait=None):
             if wait:
                 for result in wait():
                     scheduler.end_task(result.name, result.successful)
+            elif scheduler.min_delay > 0:
+                sleep(scheduler.min_delay)
 
     return Results(completed, failed)
