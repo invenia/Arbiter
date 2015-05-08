@@ -98,12 +98,9 @@ class Scheduler(object):
 
         name: the name of the task to from the scheduler.
         """
-        if name in self._running:
-            self._running.remove(name)
-        elif name in self._completed:
-            self._completed.remove(name)
-        elif name in self._failed:
-            self._failed.remove(name)
+        for location in [self._running, self._completed, self._failed]:
+            if name in location:
+                location.remove(name)
 
         # Not positive I want to use the default strategy for
         # removal from the graph

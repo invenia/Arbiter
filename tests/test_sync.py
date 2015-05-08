@@ -140,3 +140,76 @@ def test_tree():
             ('baz', 'qux', 'alugosi', 'ouroboros', 'tick', 'tock', 'failed')
         )
     )
+
+
+def test_retry():
+    """
+    runs a dependency tree with a retriable task.
+    """
+    from arbiter.sync import run_tasks
+    from arbiter.task import create_task
+
+    executed_tasks = set()
+
+    def retrier(name, responses):
+        """
+        retrier closure allows us to define a retriable function
+        """
+        return lambda: executed_tasks.add(name) or responses.pop(0)
+
+    def make_task(name, dependencies=(), responses=None, retries=0):
+        """
+        Make a task.
+        """
+        if responses is None:
+            responses = [True]
+
+        return create_task(
+            name=name,
+            function=retrier(name, responses),
+            dependencies=dependencies,
+            retries=retries,
+        )
+
+    # baz - passes by using a retry which returns True,
+    # alugosi - fails cause we forgot to set a retry value.
+    # ipsum - fails cause both attempts return False
+    results = run_tasks(
+        (
+            make_task('foo'),
+            make_task('bar', ('foo',)),
+            make_task('baz', ('bar',), [False, True], 1),
+            make_task('qux', ('baz',)),
+            make_task('bell', ('bar',)),
+            make_task('alugosi', ('bell',), [False, True]),
+            make_task('lorem'),
+            make_task('ipsum', ('lorem',), [False, False], 1),
+            make_task('ouroboros', ('ouroboros',)),
+            make_task('tick', ('tock',)),
+            make_task('tock', ('tick',)),
+            make_task('success', ('foo', 'lorem')),
+            make_task('failed', ('alugosi', 'lorem')),
+        )
+    )
+
+    assert_equals(
+        executed_tasks,
+        frozenset(
+            (
+                'foo', 'bar', 'baz', 'qux', 'bell', 'alugosi',
+                'lorem', 'ipsum', 'success'
+            )
+        )
+    )
+    assert_equals(
+        results.completed,
+        frozenset(
+            ('foo', 'bar', 'baz', 'qux', 'bell', 'lorem', 'success')
+        )
+    )
+    assert_equals(
+        results.failed,
+        frozenset(
+            ('alugosi', 'ipsum', 'ouroboros', 'tick', 'tock', 'failed')
+        )
+    )
