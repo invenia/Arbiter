@@ -4,7 +4,7 @@ The base task runner.
 from collections import namedtuple
 
 from arbiter.scheduler import Scheduler
-
+from arbiter.task import create_task
 
 Results = namedtuple('Results', ('completed', 'failed'))
 TaskResult = namedtuple('TaskResult', ('name', 'successful'))
@@ -33,7 +33,19 @@ def task_loop(tasks, execute, wait=None):
 
                 # result exists iff execute is synchroous
                 if result:
-                    scheduler.end_task(result.name, result.successful)
+                    if not result.successful and task.retries > 0:
+                        newtask = create_task(
+                            task.name,
+                            task.function,
+                            task.dependencies,
+                            task.retries - 1,
+                            task.delay
+                        )
+
+                        scheduler.remove_task(task.name)
+                        scheduler.add_task(newtask)
+                    else:
+                        scheduler.end_task(result.name, result.successful)
 
                 task = scheduler.start_task()
 

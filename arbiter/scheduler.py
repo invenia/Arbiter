@@ -92,6 +92,24 @@ class Scheduler(object):
             except ValueError:
                 self._cascade_failure(task.name)
 
+    def remove_task(self, name):
+        """
+        Removes the task from the scheduler.
+
+        name: the name of the task to from the scheduler.
+        """
+        if name in self._running:
+            self._running.remove(name)
+        elif name in self._completed:
+            self._completed.remove(name)
+        elif name in self._failed:
+            self._failed.remove(name)
+
+        # Not positive I want to use the default strategy for
+        # removal from the graph
+        self._graph.remove(name)
+        self._tasks.pop(name, None)
+
     def start_task(self, name=None):
         """
         Start a task.

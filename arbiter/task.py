@@ -6,11 +6,11 @@ from collections import namedtuple
 
 Task = namedtuple(
     'Task',
-    ('name', 'function', 'dependencies'),
+    ('name', 'function', 'dependencies', 'retries', 'delay'),
 )
 
 
-def create_task(name, function, dependencies=()):
+def create_task(name, function, dependencies=(), retries=0, delay=0):
     """
     Create a task object
 
@@ -20,4 +20,4 @@ def create_task(name, function, dependencies=()):
     dependencies: (optional, ()) Any dependencies that this task relies
         on.
     """
-    return Task(name, function, frozenset(dependencies))
+    return Task(name, function, frozenset(dependencies), retries, delay)
