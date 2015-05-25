@@ -36,7 +36,7 @@ class Graph(object):
             unique Hashable value.
         parents: (optional, None) The name of the nodes parents.
         """
-        if not isinstance(name, Hashable):
+        if not self.valid_name(name):
             raise TypeError(name)
 
         parents = set(parents or ())
@@ -255,3 +255,13 @@ class Graph(object):
             return NotImplemented
 
         return not (self == other)
+
+    @classmethod
+    def valid_name(cls, name):
+        """
+        Validate the name of a node.
+        """
+        return (
+            isinstance(name, Hashable) and
+            not isinstance(name, (bool, type(None)))
+        )

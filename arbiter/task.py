@@ -6,11 +6,11 @@ from collections import namedtuple
 
 Task = namedtuple(
     'Task',
-    ('name', 'function', 'dependencies'),
+    ('name', 'function', 'dependencies', 'expected'),
 )
 
 
-def create_task(name, function, dependencies=()):
+def create_task(name, function, dependencies=(), expected=True):
     """
     Create a task object
 
@@ -19,5 +19,7 @@ def create_task(name, function, dependencies=()):
         and return a False-y value if it fails.
     dependencies: (optional, ()) Any dependencies that this task relies
         on.
+    expected: (optional, True) The expected return value of a task if it
+        succeeds.
     """
-    return Task(name, function, frozenset(dependencies))
+    return Task(name, function, frozenset(dependencies), expected)

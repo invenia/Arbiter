@@ -20,4 +20,4 @@ def execute(task):
     """
     Execute a task, returning a TaskResult
     """
-    return TaskResult(task.name, task.function())
+    return TaskResult(task.name, task.function() == task.expected)

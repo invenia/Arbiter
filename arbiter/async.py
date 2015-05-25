@@ -36,6 +36,7 @@ def run_tasks(tasks, max_workers=None, use_processes=False):
             """
             future = executor.submit(task.function)
             future.name = task.name
+            future.expected = task.expected
 
             futures.add(future)
 
@@ -50,7 +51,11 @@ def run_tasks(tasks, max_workers=None, use_processes=False):
             )
 
             for future in waited.done:
-                results.append(TaskResult(future.name, future.result()))
+                results.append(
+                    TaskResult(
+                        future.name, future.result() == future.expected
+                    )
+                )
                 futures.remove(future)
 
             return results

@@ -6,11 +6,11 @@ from nose.tools import assert_equals, assert_true, assert_false, assert_raises
 from arbiter import task
 
 
-def create_task(name, dependencies=()):
+def create_task(name, dependencies=(), function=None):
     """
     Create a task
     """
-    return task.create_task(name, None, dependencies)
+    return task.create_task(name, function, dependencies)
 
 
 def test_empty():
@@ -84,9 +84,23 @@ def test_add_task():
 
     # invalid tasks
 
+    # repeated name
+    assert_raises(
+        ValueError,
+        scheduler.add_task,
+        create_task('foo', function='different function'),
+    )
+
+    for curr in scheduler.tasks:
+        if curr.name == 'foo':
+            assert_equals(curr.function, None)
+            break
+    else:
+        raise AssertionError('duplicate task name was removed')
+
     # invalid name
-    assert_raises(ValueError, scheduler.add_task, create_task(None))
-    assert_raises(ValueError, scheduler.add_task, create_task(set()))
+    assert_raises(TypeError, scheduler.add_task, create_task(None))
+    assert_raises(TypeError, scheduler.add_task, create_task(set()))
 
     assert_equals(scheduler.completed, frozenset())
     assert_equals(scheduler.failed, frozenset())
@@ -104,7 +118,11 @@ def test_add_task():
     assert_false(scheduler.is_finished())
 
     # circular dependencies
-    scheduler.add_task(create_task('ouroboros', ('ouroboros',)))
+    assert_raises(
+        ValueError,
+        scheduler.add_task,
+        create_task('ouroboros', ('ouroboros',)),
+    )
 
     assert_equals(scheduler.completed, frozenset())
     assert_equals(scheduler.failed, frozenset(('failed', 'ouroboros')))
@@ -121,7 +139,9 @@ def test_add_task():
     assert_equals(scheduler.runnable, frozenset(('foo',)))
     assert_false(scheduler.is_finished())
 
-    scheduler.add_task(create_task('tock', ('tick',)))
+    assert_raises(
+        ValueError, scheduler.add_task, create_task('tock', ('tick',))
+    )
 
     assert_equals(scheduler.completed, frozenset())
     assert_equals(
@@ -136,16 +156,11 @@ def test_add_task():
             create_task('foo'),
             create_task('bar', ('foo',)),
             create_task('ipsum', ('lorem',)),
-            create_task('ouroboros', ('ouroboros',)),
-            create_task('tick', ('tock',)),
-            create_task('tock', ('tick',)),
         )
     )
 
     assert_equals(at_init.completed, frozenset())
-    assert_equals(
-        at_init.failed, frozenset(('ouroboros', 'tick', 'tock'))
-    )
+    assert_equals(at_init.failed, frozenset())
     assert_equals(at_init.runnable, frozenset(('foo',)))
     assert_false(at_init.is_finished())
 
@@ -420,20 +435,36 @@ def test_context_manager():
     )
 
 
-# def test_naming():
-#     """
-#     Names just need to be hashable and not be None.
-#     """
-#     from arbiter.scheduler import Scheduler
+def test_naming():
+    """
+    Task names just need to be hashable and not be None or boolean.
+    """
+    from arbiter.scheduler import Scheduler
 
-#     scheduler = Scheduler()
+    scheduler = Scheduler()
 
-#     scheduler.add_task(create_task(1, (float('NaN'),)))
-#     scheduler.add_task(create_task(float('NaN'), (0,)))
-#     scheduler.add_task(create_task(0, ('',)))
-#     scheduler.add_task(create_task(frozenset(), ((),)))
-#     scheduler.add_task(create_task((), (False,)))
-#     scheduler.add_task(create_task(False, (sum,)))
-#     scheduler.add_task(create_task(sum,))
+    scheduler.add_task(create_task(1, (float('NaN'),)))
+    scheduler.add_task(create_task(float('NaN'), (0,)))
+    scheduler.add_task(create_task(0, ('',)))
+    scheduler.add_task(create_task(''))
+    scheduler.add_task(create_task(frozenset(), ((),)))
+    scheduler.add_task(create_task((), (sum,)))
+    scheduler.add_task(create_task(sum,))
 
-#     scheduler.
+    assert_equals(scheduler.runnable, frozenset((sum, '')))
+
+    task = scheduler.start_task(name='')
+    assert_equals(task.name, '')
+    assert_equals(scheduler.runnable, frozenset((sum,)))
+
+    task = scheduler.start_task()
+    assert_equals(task.name, sum)
+    assert_equals(scheduler.runnable, frozenset())
+
+    scheduler.end_task('')
+    assert_equals(scheduler.completed, frozenset(('',)))
+    assert_equals(scheduler.failed, frozenset())
+    assert_equals(scheduler.runnable, frozenset((0,)))
+
+    for name in (None, True, False, []):
+        assert_raises(TypeError, scheduler.add_task, create_task(name))

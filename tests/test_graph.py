@@ -398,7 +398,7 @@ def test_naming():
 
     graph = Graph()
 
-    for name in (1, float('NaN'), 0, None, '', frozenset(), (), False, sum):
+    for name in (1, float('NaN'), 0, '', frozenset(), (), sum):
         graph.add('child1', frozenset((name,)))
 
         graph.add(name)
@@ -422,18 +422,19 @@ def test_naming():
 
         assert_equals(graph.nodes, frozenset())
 
-    graph.add(None)
+    for name in (True, False, None, []):
+        assert_raises(TypeError, graph.add, None)
+
     graph.add('', parents=((),))
     graph.add((), parents=(frozenset(),))
     graph.add(frozenset())
 
-    assert_equals(graph.nodes, frozenset((None, '', (), frozenset())))
-    assert_equals(graph.roots, frozenset((None, frozenset())))
+    assert_equals(graph.nodes, frozenset(('', (), frozenset())))
+    assert_equals(graph.roots, frozenset((frozenset(),)))
 
     graph.remove((), strategy=Strategy.remove)
 
-    assert_equals(graph.nodes, frozenset((None, frozenset())))
-    assert_equals(graph.roots, frozenset((None, frozenset())))
+    assert_equals(graph.nodes, frozenset((frozenset(),)))
+    assert_equals(graph.roots, frozenset((frozenset(),)))
 
-    assert_raises(TypeError, graph.add, [])
     assert_raises(TypeError, graph.add, 'valid', parents=([],))

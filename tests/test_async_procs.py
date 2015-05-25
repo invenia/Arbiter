@@ -101,9 +101,6 @@ def test_tree():
             make_task('alugosi', ('bell',), False),
             make_task('lorem'),
             make_task('ipsum', ('lorem',)),
-            make_task('ouroboros', ('ouroboros',)),
-            make_task('tick', ('tock',)),
-            make_task('tock', ('tick',)),
             make_task('success', ('foo', 'lorem')),
             make_task('failed', ('qux', 'lorem')),
         ),
@@ -120,7 +117,7 @@ def test_tree():
     assert_equals(
         results.failed,
         frozenset(
-            ('baz', 'qux', 'alugosi', 'ouroboros', 'tick', 'tock', 'failed')
+            ('baz', 'qux', 'alugosi', 'failed')
         )
     )
 

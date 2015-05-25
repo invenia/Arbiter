@@ -1,8 +1,6 @@
 """
 The dependency scheduler.
 """
-from collections import Hashable
-
 from arbiter.graph import Graph, Strategy
 
 
@@ -23,6 +21,13 @@ class Scheduler(object):
         if tasks is not None:
             for task in tasks:
                 self.add_task(task)
+
+    @property
+    def tasks(self):
+        """
+        A copy of the set of tasks
+        """
+        return frozenset(self._tasks.values())
 
     @property
     def completed(self):
@@ -64,7 +69,10 @@ class Scheduler(object):
 
         task: The task to add.
         """
-        if not self._valid_name(task.name):
+        if not Graph.valid_name(task.name):
+            raise TypeError(task.name)
+
+        if task.name in self._tasks:
             raise ValueError(task.name)
 
         self._tasks[task.name] = task
@@ -72,10 +80,8 @@ class Scheduler(object):
         incomplete_dependencies = set()
 
         for dependency in task.dependencies:
-            if not self._valid_name(dependency) or dependency in self._failed:
-                # there may already be tasks dependent on this one.
+            if not Graph.valid_name(dependency) or dependency in self._failed:
                 self._cascade_failure(task.name)
-
                 break
 
             if dependency not in self._completed:
@@ -83,8 +89,9 @@ class Scheduler(object):
         else:  # task hasn't failed
             try:
                 self._graph.add(task.name, incomplete_dependencies)
-            except ValueError:
+            except:
                 self._cascade_failure(task.name)
+                raise
 
     def start_task(self, name=None):
         """
@@ -154,7 +161,7 @@ class Scheduler(object):
             self._failed.update(
                 self._graph.remove(name, strategy=Strategy.remove)
             )
-        else:
+        elif Graph.valid_name(name):
             self._failed.add(name)
 
     def __enter__(self):
@@ -172,10 +179,3 @@ class Scheduler(object):
         non-completed tasks.
         """
         self.fail_remaining()
-
-    @classmethod
-    def _valid_name(cls, name):
-        """
-        Check whether a name is valid as a task name.
-        """
-        return name is not None and isinstance(name, Hashable)
