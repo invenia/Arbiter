@@ -25,14 +25,18 @@ def test_no_dependencies():
 
     executed_tasks = set()
 
-    def make_task(name, dependencies=(), succeed=True):
+    def make_task(name, dependencies=(), should_succeed=True):
         """
         Make a task
         """
+        from arbiter.task import create_task
+
+        function = succeed if should_succeed else fail
+
         return create_task(
-            name=name,
-            function=lambda: executed_tasks.add(name) or succeed,
-            dependencies=dependencies,
+            lambda: executed_tasks.add(name) or function(),
+            name=name, 
+            dependencies=dependencies
         )
 
     results = run_tasks(
@@ -40,7 +44,7 @@ def test_no_dependencies():
             make_task('foo'),
             make_task('bar'),
             make_task('baz'),
-            make_task('fail', succeed=False)
+            make_task('fail', should_succeed=False)
         )
     )
 
@@ -58,21 +62,25 @@ def test_chain():
 
     executed_tasks = set()
 
-    def make_task(name, dependencies=(), succeed=True):
+    def make_task(name, dependencies=(), should_succeed=True):
         """
         Make a task
         """
+        from arbiter.task import create_task
+
+        function = succeed if should_succeed else fail
+
         return create_task(
-            name=name,
-            function=lambda: executed_tasks.add(name) or succeed,
-            dependencies=dependencies,
+            lambda: executed_tasks.add(name) or function(),
+            name=name, 
+            dependencies=dependencies
         )
 
     results = run_tasks(
         (
             make_task('foo'),
             make_task('bar', ('foo',)),
-            make_task('baz', ('bar',), succeed=False),
+            make_task('baz', ('bar',), should_succeed=False),
             make_task('qux', ('baz',)),
         )
     )
@@ -91,24 +99,28 @@ def test_tree():
 
     executed_tasks = set()
 
-    def make_task(name, dependencies=(), succeed=True):
+    def make_task(name, dependencies=(), should_succeed=True):
         """
         Make a task
         """
+        from arbiter.task import create_task
+
+        function = succeed if should_succeed else fail
+
         return create_task(
-            name=name,
-            function=lambda: executed_tasks.add(name) or succeed,
-            dependencies=dependencies,
+            lambda: executed_tasks.add(name) or function(),
+            name=name, 
+            dependencies=dependencies
         )
 
     results = run_tasks(
         (
             make_task('foo'),
             make_task('bar', ('foo',)),
-            make_task('baz', ('bar',), False),
+            make_task('baz', ('bar',), should_succeed=False),
             make_task('qux', ('baz',)),
             make_task('bell', ('bar',)),
-            make_task('alugosi', ('bell',), False),
+            make_task('alugosi', ('bell',), should_succeed=False),
             make_task('lorem'),
             make_task('ipsum', ('lorem',)),
             make_task('ouroboros', ('ouroboros',)),
@@ -140,3 +152,18 @@ def test_tree():
             ('baz', 'qux', 'alugosi', 'ouroboros', 'tick', 'tock', 'failed')
         )
     )
+
+
+def succeed():
+    """
+    A task that succeeds
+    """
+    return True
+
+
+def fail():
+    """
+    A task that fails
+    """
+    raise Exception("Failure Test")
+

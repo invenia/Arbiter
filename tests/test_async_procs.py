@@ -4,6 +4,16 @@ Tests for the asynchronous task runner (using processes).
 from nose.tools import assert_equals
 
 
+def make_task(name, dependencies=(), should_succeed=True):
+    """
+    Make a task that should succeed
+    """
+    from arbiter.task import create_task
+    function = succeed if should_succeed else fail
+    
+    return create_task(function, name=name, dependencies=dependencies)
+
+
 def test_empty():
     """
     Solve no tasks (with processes)
@@ -21,15 +31,6 @@ def test_no_dependencies():
     run dependency-less tasks (with processes)
     """
     from arbiter.async import run_tasks
-    from arbiter.task import create_task
-
-    def make_task(name, dependencies=(), should_succeed=True):
-        """
-        Make a task that should succeed
-        """
-        function = succeed if should_succeed else fail
-
-        return create_task(name, function, dependencies)
 
     results = run_tasks(
         (
@@ -51,15 +52,6 @@ def test_chain():
     run a dependency chain (with processes)
     """
     from arbiter.async import run_tasks
-    from arbiter.task import create_task
-
-    def make_task(name, dependencies=(), should_succeed=True):
-        """
-        Make a task that should succeed
-        """
-        function = succeed if should_succeed else fail
-
-        return create_task(name, function, dependencies)
 
     results = run_tasks(
         (
@@ -81,15 +73,6 @@ def test_tree():
     run a dependency tree (with processes)
     """
     from arbiter.async import run_tasks
-    from arbiter.task import create_task
-
-    def make_task(name, dependencies=(), should_succeed=True):
-        """
-        Make a task that should succeed
-        """
-        function = succeed if should_succeed else fail
-
-        return create_task(name, function, dependencies)
 
     results = run_tasks(
         (
@@ -131,8 +114,9 @@ def succeed():
     """
     return True
 
-
 def fail():
     """
     A task that fails
     """
+    raise Exception("Failure Test")
+

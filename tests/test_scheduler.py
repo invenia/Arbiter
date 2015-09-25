@@ -10,7 +10,7 @@ def create_task(name, dependencies=()):
     """
     Create a task
     """
-    return task.create_task(name, None, dependencies)
+    return task.create_task(None, name=name, dependencies=dependencies)
 
 
 def test_empty():
