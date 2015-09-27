@@ -4,7 +4,7 @@ The base task runner.
 from collections import namedtuple
 from functools import partial
 from arbiter.scheduler import Scheduler
-from arbiter.task import TaskStore
+from arbiter.task import Task, TaskStore
 
 
 Results = namedtuple('Results', ('completed', 'failed', 'exceptions'))

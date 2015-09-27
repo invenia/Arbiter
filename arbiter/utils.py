@@ -6,9 +6,22 @@ from time import sleep
 
 class RetryCondition(object):
     """
-    Defines 
+    Defines a retry condition. 
     """
-    __metaclass__ = ABCMeta
+    def __init__(self, function, kind='exception'):
+        """
+        Returns a retry condition which will run the supplied function 
+        in either on_value or on_exception depending if kind == 'exception'
+        or 'value'
+
+        Args:
+            function: The function to run.
+            kind: the type of condition exception or value based.
+        """
+        self._function = function
+        self._kind = kind
+        if kind != 'exception' and kind != 'value':
+            raise ValueError(kind)
 
     def on_value(self, value):
         """
@@ -17,6 +30,9 @@ class RetryCondition(object):
         Args:
             value: The value to check against.
         """
+        if self._kind == 'value':
+            return self._function(value)
+
         return False
 
     def on_exception(self, exc):
@@ -26,6 +42,9 @@ class RetryCondition(object):
         Args:
             exc (Exception): The exceptioin to check against.
         """
+        if self._kind == 'exception':
+            return self._function(exc)
+
         return False
 
 
@@ -78,9 +97,9 @@ def retry(retries=0, delay=timedelta(), conditions=[]):
 
 def retry_loop(retries, delay_in_seconds, conditions, function):
     attempts = 0
-
+    value = None
+    err = None
     while attempts <= retries:
-
         try:
             value = function()
             for condition in conditions:
@@ -89,6 +108,7 @@ def retry_loop(retries, delay_in_seconds, conditions, function):
             else:
                 return value
         except Exception as exc:
+            err = exc
             for condition in conditions:
                 if condition.on_exception(exc):
                     break
@@ -97,5 +117,13 @@ def retry_loop(retries, delay_in_seconds, conditions, function):
 
         attempts += 1
         sleep(delay_in_seconds)
+    else:
+        if err:
+            raise err
+        else:
+            ValueError(
+                "Max retries ({}) reached and return the value is still {}."
+                .format(attempts, value)
+            )
 
     return value

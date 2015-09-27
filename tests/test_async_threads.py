@@ -157,6 +157,29 @@ def test_tree():
     )
 
 
+def test_with_data():
+    """
+    Pass data.
+    """
+    from arbiter.async import run_tasks
+    from arbiter.task import create_task
+
+    data = [4, 5, 6]
+    def myfunc(val=-1):
+        """
+        Modify some data which will be passed from another task.
+        """
+        data.append(val)
+
+    foo = create_task(len, [1, 2], name='foo')
+    bar = create_task(myfunc, name='bar', val=foo)
+    results = run_tasks((foo, bar), 2)
+
+    assert_equals(results.exceptions, [])
+    assert_equals(results.completed, frozenset(('foo', 'bar')))
+    assert_equals(data, [4, 5, 6, 2])
+
+
 def succeed():
     """
     A task that succeeds
