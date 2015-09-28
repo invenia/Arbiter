@@ -6,7 +6,10 @@ from time import sleep
 
 class RetryCondition(object):
     """
-    Defines a retry condition. 
+    Defines a retry condition, which by default doesn't trigger a retry
+    on either a value or an exception.
+
+    NOTE: I don't particularly like this 
     """
     def __init__(self, function, kind='exception'):
         """
@@ -25,7 +28,8 @@ class RetryCondition(object):
 
     def on_value(self, value):
         """
-        Returns True or False as to whether or not the given value should trigger a retry event.
+        Returns True or False as to whether or not the given value 
+        should trigger a retry event (Defaults to False).
 
         Args:
             value: The value to check against.
@@ -37,7 +41,8 @@ class RetryCondition(object):
 
     def on_exception(self, exc):
         """
-        Returns True or False as to whether or not the given exception should trigger a retry event.
+        Returns True or False as to whether or not the given exception 
+        should trigger a retry event (Defaults to False).
 
         Args:
             exc (Exception): The exceptioin to check against.
@@ -49,26 +54,31 @@ class RetryCondition(object):
 
 
 def retry_handler(retries=0, delay=timedelta(), conditions=[]):
-    if not isinstance(retries, Integral):
-        raise TypeError(retries)
+    """
+    A simple wrapper function that creates a handler function by using 
+    on the retry_loop function.
 
+    Args:
+        retries (Integral): The number of times to retry if a failure occurs.
+        delay (timedelta, optional, 0 seconds): A timedelta representing the amount 
+            time to delay between retries.
+        conditions (list): A list of retry conditions. 
+    Returns:
+        function: The retry_loop function partialed.
+    """  
     delay_in_seconds = delay.total_seconds()
-
-    if delay_in_seconds < 0:
-        raise TypeError(delay)
-
     return partial(retry_loop, retries, delay_in_seconds, conditions)
 
 
 def retry(retries=0, delay=timedelta(), conditions=[]):
     """
-    A decorator for making a function that retries on failure (failure
-    is defined as raising an exception).
-    The function's returned value will be passed through (and if on the
-    final retry, an exception will be passed through).
-    retries: The number of times to retry if a failure occurs.
-    delay: (optional, 0 seconds) A timedelta representing the amount of
+    A decorator for making a function that retries on failure.
+
+    Args:
+        retries (Integral): The number of times to retry if a failure occurs.
+        delay (timedelta, optional, 0 seconds): A timedelta representing the amount of
         time to delay between retries.
+        conditions (list): A list of retry conditions.
     """
     if not isinstance(retries, Integral):
         raise TypeError(retries)
@@ -96,6 +106,28 @@ def retry(retries=0, delay=timedelta(), conditions=[]):
 
 
 def retry_loop(retries, delay_in_seconds, conditions, function):
+    """
+    Actually performs the retry loop used by the retry decorator and handler functions.
+    Failures for retrying are defined by the RetryConditions passed in. If the maximum 
+    number of retries has been reached then it raises the most recent error or a ValueError 
+    on the most recent result value.
+
+    Args:
+        retries (Integral): Maximum number of times to retry.
+        delay_in_seconds (Integral): Number of seconds to wait between retries.
+        conditions (list): A list of retry conditions the can trigger a retry on a 
+            return value or exception.
+        function (function): The function to wrap.
+
+    Returns:
+        value: The return value from function
+    """
+    if not isinstance(retries, Integral):
+        raise TypeError(retries)
+
+    if delay_in_seconds < 0:
+        raise TypeError(delay)
+
     attempts = 0
     value = None
     err = None
