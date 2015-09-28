@@ -13,6 +13,7 @@ class Scheduler(object):
     """
     A dependency scheduler.
     """
+
     def __init__(self, tasks=None, completed=None, failed=None):
         if completed is None:
             completed = set()

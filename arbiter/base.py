@@ -8,7 +8,10 @@ from arbiter.task import Task, TaskStore
 
 
 Results = namedtuple('Results', ('completed', 'failed', 'exceptions'))
-TaskResult = namedtuple('TaskResult', ('name', 'successful', 'exception', 'data'))
+TaskResult = namedtuple(
+    'TaskResult',
+    ('name', 'successful', 'exception', 'data')
+)
 
 
 def task_loop(tasks, execute, wait=None, store=TaskStore()):
@@ -75,4 +78,3 @@ def task_loop(tasks, execute, wait=None, store=TaskStore()):
 
     # TODO: if in debug mode print out all failed tasks?
     return Results(completed, failed, exceptions)
-

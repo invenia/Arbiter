@@ -3,7 +3,6 @@ Task creation/generation
 """
 from collections import namedtuple
 from uuid import uuid4
-from functools import partial
 
 
 Task = namedtuple(
@@ -52,7 +51,10 @@ def create_task(function, *args, **kwargs):
 
 
 class TaskStore(object):
-    
+    """
+    A default task store which just wraps a dict.
+    """
+
     def __init__(self):
         self._results = {}
 
@@ -67,7 +69,3 @@ class TaskStore(object):
         Retrieve a task result given its unique task name.
         """
         self._results[name] = value
-
-    
-    
-

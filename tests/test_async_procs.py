@@ -10,7 +10,7 @@ def make_task(name, dependencies=(), should_succeed=True):
     """
     from arbiter.task import create_task
     function = succeed if should_succeed else fail
-    
+
     return create_task(function, name=name, dependencies=dependencies)
 
 
@@ -114,9 +114,9 @@ def succeed():
     """
     return True
 
+
 def fail():
     """
     A task that fails
     """
     raise Exception("Failure Test")
-

@@ -17,6 +17,7 @@ class Graph(object):
     """
     An acyclic directed graph.
     """
+
     def __init__(self):
         self._nodes = {}
 

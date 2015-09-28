@@ -52,7 +52,14 @@ def run_tasks(tasks, max_workers=None, use_processes=False):
             for future in waited.done:
                 exc = future.exception()
                 if exc is None:
-                    results.append(TaskResult(future.name, True, None, future.result()))
+                    results.append(
+                        TaskResult(
+                            future.name,
+                            True,
+                            None,
+                            future.result()
+                        )
+                    )
                 else:
                     results.append(TaskResult(future.name, False, exc, None))
 

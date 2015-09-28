@@ -21,7 +21,6 @@ def test_no_dependencies():
     run dependency-less tasks
     """
     from arbiter.sync import run_tasks
-    from arbiter.task import create_task
 
     executed_tasks = set()
 
@@ -35,7 +34,7 @@ def test_no_dependencies():
 
         return create_task(
             lambda: executed_tasks.add(name) or function(),
-            name=name, 
+            name=name,
             dependencies=dependencies
         )
 
@@ -58,7 +57,6 @@ def test_chain():
     run a dependency chain
     """
     from arbiter.sync import run_tasks
-    from arbiter.task import create_task
 
     executed_tasks = set()
 
@@ -72,7 +70,7 @@ def test_chain():
 
         return create_task(
             lambda: executed_tasks.add(name) or function(),
-            name=name, 
+            name=name,
             dependencies=dependencies
         )
 
@@ -95,7 +93,6 @@ def test_tree():
     run a dependency tree
     """
     from arbiter.sync import run_tasks
-    from arbiter.task import create_task
 
     executed_tasks = set()
 
@@ -109,7 +106,7 @@ def test_tree():
 
         return create_task(
             lambda: executed_tasks.add(name) or function(),
-            name=name, 
+            name=name,
             dependencies=dependencies
         )
 
@@ -163,6 +160,7 @@ def test_with_data():
     from arbiter.task import create_task
 
     data = [4, 5, 6]
+
     def myfunc(val=-1):
         """
         Modify some data which will be passed from another task.
@@ -190,4 +188,3 @@ def fail():
     A task that fails
     """
     raise Exception("Failure Test")
-
