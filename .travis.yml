@@ -1,8 +1,5 @@
 language: python
 sudo: false
-os:
-  - osx
-  - linux
 env:
   - TOXENV=py27
   - TOXENV=py33
