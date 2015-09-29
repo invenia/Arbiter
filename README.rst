@@ -75,7 +75,7 @@ Retrying Tasks
 
 Define your own retry conditions::
     
-    from arbiter.utils import RetryCondition()
+    from arbiter.utils import RetryCondition
 
     def retry_on_value_error(exc):
         if isinstance(exc, ValueError) and exc.args[0] == 'do_retry':
@@ -110,7 +110,7 @@ Alternatively, you can decorate your task functions ahead of time.::
 
     from datetime import timedelta
 
-    from arbieter.utils import retry
+    from arbiter.utils import retry
 
     @retry(retries=5, delay=timedelta=(10), conditions=[cond])
     def myfunc():
