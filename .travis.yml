@@ -1,18 +1,23 @@
 language: python
-python:
-  - "nightly"
-  - "3.4"
-  - "3.3"
-  - "2.7"
-  - "2.6"
-  - "pypy3"
-  - "pypy"
+sudo: false
+env:
+  - TOXENV=py27
+  - TOXENV=py33
+  - TOXENV=py34
+  - TOXENV=py35
+  - TOXENV=pypy
+  - TOXENV=pypy3
+  - TOXENV=flake8
 matrix:
   allow_failures:
-    - python: "nightly"
+    # Currently, allowing pypy3 and py35 to fail
+    # cause travis doesn't seem to support them properly by default.
+    - env: TOXENV=pypy3
+    - env: TOXENV=py35
+  fast_finish: true
 install:
-  - "pip install -r requirements.txt -r requirements-tests.txt"
-  - "python setup.py install"
-script: "python setup.py nosetests  && flake8 arbiter tests"
+  - travis_retry pip install tox==1.6.1
+script:
+  - travis_retry tox
 after_success:
   - coveralls

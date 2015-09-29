@@ -16,8 +16,11 @@ def run_tasks(tasks):
     return task_loop(tasks, execute)
 
 
-def execute(task):
+def execute(function, name):
     """
     Execute a task, returning a TaskResult
     """
-    return TaskResult(task.name, task.function())
+    try:
+        return TaskResult(name, True, None, function())
+    except Exception as exc:
+        return TaskResult(name, False, exc, None)

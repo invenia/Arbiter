@@ -30,12 +30,12 @@ def run_tasks(tasks, max_workers=None, use_processes=False):
         get_executor = concurrent.futures.ThreadPoolExecutor
 
     with get_executor(max_workers) as executor:
-        def execute(task):
+        def execute(function, name):
             """
             Submit a task to the pool
             """
-            future = executor.submit(task.function)
-            future.name = task.name
+            future = executor.submit(function)
+            future.name = name
 
             futures.add(future)
 
@@ -50,7 +50,19 @@ def run_tasks(tasks, max_workers=None, use_processes=False):
             )
 
             for future in waited.done:
-                results.append(TaskResult(future.name, future.result()))
+                exc = future.exception()
+                if exc is None:
+                    results.append(
+                        TaskResult(
+                            future.name,
+                            True,
+                            None,
+                            future.result()
+                        )
+                    )
+                else:
+                    results.append(TaskResult(future.name, False, exc, None))
+
                 futures.remove(future)
 
             return results
